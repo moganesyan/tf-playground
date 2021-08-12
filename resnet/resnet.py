@@ -107,9 +107,6 @@ class ResNet():
                 nfilters_base * upsample_factor,
                 (1,1), (stride,stride))(identity)
             identity = layers.BatchNormalization()(identity)
-            # print(f'fancy skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
-        # else:
-            # print(f'normal skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
 
         x = layers.Add()([x, identity])
         x = layers.ReLU()(x)
