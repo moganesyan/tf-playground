@@ -25,7 +25,7 @@ class ResNet():
                     nfilters_in: int,
                     nfilters_base: int,
                     stack_size: int,
-                    stride: int):
+                    stride: int) -> layers.Layer:
         """
             Construct residual block stack
         """
@@ -86,7 +86,7 @@ class ResNet():
                        nfilters_in: int,
                        nfilters_base: int,
                        stride: int = 1,
-                       upsample_factor: int = 4):
+                       upsample_factor: int = 4) -> layers.Layer:
         """
             Residual block generator via functional API
         """
