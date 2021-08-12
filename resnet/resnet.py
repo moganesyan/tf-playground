@@ -83,10 +83,10 @@ class ResNet():
 
     @staticmethod
     def residual_block(x_in: layers.Layer,
-                    nfilters_in: int,
-                    nfilters_base: int,
-                    stride: int = 1,
-                    upsample_factor: int = 4):
+                       nfilters_in: int,
+                       nfilters_base: int,
+                       stride: int = 1,
+                       upsample_factor: int = 4):
         """
             Residual block generator via functional API
         """
