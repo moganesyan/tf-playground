@@ -14,7 +14,7 @@ class ResNet():
 
     def __init__(self,
                  output_size: int,
-                 architecture: List[int] = [3, 4, 6, 3]) -> None:
+                 architecture: List[int]) -> None:
 
         self.output_size: int = output_size
         self.arch: List[int] = architecture
@@ -82,6 +82,18 @@ class ResNet():
         return x_out
 
 
+def Resnet50(output_size: int) -> ResNet:
+    return ResNet(output_size, [3, 4, 6, 3])
+
+
+def Resnet101(output_size: int) -> ResNet:
+    return ResNet(output_size, [3, 4, 23, 3])
+
+
+def Resnet152(output_size: int) -> ResNet:
+    return ResNet(output_size, [3, 8, 36, 3])     
+
+
 def residual_block(x_in: layers.Layer,
                    nfilters_in: int,
                    nfilters_base: int,
@@ -107,24 +119,10 @@ def residual_block(x_in: layers.Layer,
             nfilters_base * upsample_factor,
             (1,1), (stride,stride))(identity)
         identity = layers.BatchNormalization()(identity)
-        print(f'fancy skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
-    else:
-        print(f'normal skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
+        # print(f'fancy skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
+    # else:
+        # print(f'normal skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
 
     x = layers.Add()([x, identity])
     x = layers.ReLU()(x)
     return x
-
-
-resnet = ResNet(10)
-layer_in = layers.Input((250,250,3))
-layer_out = resnet(layer_in)
-
-model = tf.keras.Model(inputs = layer_in, outputs = layer_out, name = 'residual block')
-# model.summary()
-# tf.keras.utils.plot_model(
-#     model, to_file='model.png', show_shapes=True, show_dtype=True,
-#     show_layer_names=True, rankdir='TB', expand_nested=True, dpi=96
-# )
-
-model.save('resnet50.h5')
