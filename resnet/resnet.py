@@ -29,13 +29,13 @@ class ResNet():
         """
             Construct residual block stack
         """
-        x = residual_block(
+        x = self.residual_block(
             x_in, nfilters_in, nfilters_base, stride = stride)
 
         nfilters_in = self.nfilters * 4
 
         for _ in range(stack_size - 1):
-            x = residual_block(
+            x = self.residual_block(
                 x, nfilters_in, nfilters_base, stride = 1)
         return x
             
@@ -81,6 +81,40 @@ class ResNet():
 
         return x_out
 
+    @staticmethod
+    def residual_block(x_in: layers.Layer,
+                    nfilters_in: int,
+                    nfilters_base: int,
+                    stride: int = 1,
+                    upsample_factor: int = 4):
+        """
+            Residual block generator via functional API
+        """
+        identity = x_in
+
+        x = layers.Conv2D(nfilters_base,(1,1),(stride, stride),'valid')(x_in)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.Conv2D(nfilters_base,(3,3),(1,1),'same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.Conv2D(nfilters_base * upsample_factor,(1,1),(1,1),'valid')(x)
+        x = layers.BatchNormalization()(x)
+
+        #identity skip connection
+        if nfilters_base * 4 != nfilters_in or stride != 1:
+            identity = layers.Conv2D(
+                nfilters_base * upsample_factor,
+                (1,1), (stride,stride))(identity)
+            identity = layers.BatchNormalization()(identity)
+            # print(f'fancy skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
+        # else:
+            # print(f'normal skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
+
+        x = layers.Add()([x, identity])
+        x = layers.ReLU()(x)
+        return x
+
 
 def Resnet50(output_size: int) -> ResNet:
     return ResNet(output_size, [3, 4, 6, 3])
@@ -92,37 +126,3 @@ def Resnet101(output_size: int) -> ResNet:
 
 def Resnet152(output_size: int) -> ResNet:
     return ResNet(output_size, [3, 8, 36, 3])     
-
-
-def residual_block(x_in: layers.Layer,
-                   nfilters_in: int,
-                   nfilters_base: int,
-                   stride: int = 1,
-                   upsample_factor: int = 4):
-    """
-        Residual block generator via functional API
-    """
-    identity = x_in
-
-    x = layers.Conv2D(nfilters_base,(1,1),(stride, stride),'valid')(x_in)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    x = layers.Conv2D(nfilters_base,(3,3),(1,1),'same')(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    x = layers.Conv2D(nfilters_base * upsample_factor,(1,1),(1,1),'valid')(x)
-    x = layers.BatchNormalization()(x)
-
-    #identity skip connection
-    if nfilters_base * 4 != nfilters_in or stride != 1:
-        identity = layers.Conv2D(
-            nfilters_base * upsample_factor,
-            (1,1), (stride,stride))(identity)
-        identity = layers.BatchNormalization()(identity)
-        # print(f'fancy skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
-    # else:
-        # print(f'normal skip. nfilters_in: {nfilters_in}, nfilters_base: {nfilters_base}, stride: {stride}')
-
-    x = layers.Add()([x, identity])
-    x = layers.ReLU()(x)
-    return x
