@@ -133,6 +133,7 @@ dmypy.json
 *.png
 
 # Project specific
+*/paper/*
 .vscode/*
 logs/*
 *.h5
