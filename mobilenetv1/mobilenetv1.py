@@ -26,8 +26,8 @@ class MobilenetV1:
     """
 
     def __init__(self,
-                 input_shape: Optional[Tuple[int, int, int]],
                  output_size: int,
+                 input_shape: Optional[Tuple[int, int, int]] = None,
                  alpha: float = 1.0) -> None:
 
         self.input_shape: Optional[Tuple[int, int, int]] = input_shape
@@ -57,6 +57,8 @@ class MobilenetV1:
             padding = 'same',
             depth_multiplier = self.dwise_conv_multiplier,
             data_format = 'channels_last')(x_in)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
         x = layers.Conv2D(
             num_filters_scaled,
             self.fwise_conv_kernel,
