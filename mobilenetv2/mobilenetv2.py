@@ -32,7 +32,7 @@ class MobileNetV2():
         self.dwise_conv_multiplier: int = 1
         self.fwise_conv_kernel: Tuple[int, int] = (1,1)
 
-    def _depthwise_block(self,
+    def _inverted_residual_block(self,
                          x_in: layers.Layer,
                          num_filters_out: int,
                          expansion: int,
@@ -82,45 +82,45 @@ class MobileNetV2():
         x = layers.BatchNormalization()(x)
         x = ReLU6(x)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(16 * self.alpha)), 1, 1)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(24 * self.alpha)), 6, 2)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(24 * self.alpha)), 6, 1)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(32 * self.alpha)), 6, 2)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(32 * self.alpha)), 6, 1)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(32 * self.alpha)), 6, 1)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(64 * self.alpha)), 6, 2)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(64 * self.alpha)), 6, 1)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(64 * self.alpha)), 6, 1)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(64 * self.alpha)), 6, 1)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(96 * self.alpha)), 6, 1)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(96 * self.alpha)), 6, 1)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(96 * self.alpha)), 6, 1)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(160 * self.alpha)), 6, 2)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(160 * self.alpha)), 6, 1)
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(160 * self.alpha)), 6, 1)
         #
-        x = self._depthwise_block(
+        x = self._inverted_residual_block(
             x, int(floor(320 * self.alpha)), 6, 1)
         #
         x = layers.Conv2D(
