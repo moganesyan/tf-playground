@@ -139,3 +139,4 @@ logs/*
 *.h5
 *.hdf5
 *sublime*
+resnet/*

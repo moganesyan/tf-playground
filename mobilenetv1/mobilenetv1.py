@@ -3,37 +3,28 @@ from typing import Tuple, Union, Optional
 
 import tensorflow as tf
 from tensorflow.keras import layers
+from tensorflow.keras import models
+
+from utils.dl_utils import ReLU6
 
 
-class ReLU6(layers.Layer):
+class MobileNetV1:
     """
-        Custom ReLU6 activation
-    """
-
-    def __init__(self) -> None:
-        super(ReLU6, self).__init__()
-
-    def call(self, input) -> layers.Layer:
-        return tf.clip_by_value(
-            input,
-            clip_value_min = 0.0,
-            clip_value_max = 6.0)
-            
-
-class MobilenetV1:
-    """
-        Mobilenet V1 class
+        MobileNet V1 class
     """
 
     def __init__(self,
+                 input_shape: Tuple[int, int, int],
                  output_size: int,
-                 input_shape: Optional[Tuple[int, int, int]] = None,
                  alpha: float = 1.0) -> None:
+        """
+            Mobilenet V1 constructor
+            input_shape: input image shape
+            output_size: number of classes
+            alpha: Width scaling coefficient
+        """
 
-        self.input_shape: Optional[Tuple[int, int, int]] = input_shape
-        if input_shape is None:
-            self.input_shape = (224, 224, 3)
-
+        self.input_shape: Tuple[int, int, int] = input_shape
         self.output_size: int = output_size
         self.alpha: float = alpha
 
@@ -58,7 +49,7 @@ class MobilenetV1:
             depth_multiplier = self.dwise_conv_multiplier,
             data_format = 'channels_last')(x_in)
         x = layers.BatchNormalization()(x)
-        x = layers.ReLU()(x)
+        x = ReLU6()(x)
         x = layers.Conv2D(
             num_filters_scaled,
             self.fwise_conv_kernel,
@@ -68,7 +59,7 @@ class MobilenetV1:
         x = ReLU6()(x)
         return x
 
-    def __call__(self) -> Union[layers.Layer, layers.Layer]:
+    def _build_network(self) -> Union[layers.Layer, layers.Layer]:
         """
             Construct graph for MobilenetV1 using functional API
         """
@@ -114,6 +105,16 @@ class MobilenetV1:
         x = layers.Dense(int(floor(1024 * self.alpha)))(x)
         x = ReLU6()(x)
         x = layers.Dense(self.output_size)(x)
-        x = layers.Softmax()(x)
+        x_out = layers.Softmax()(x)
 
-        return x_in, x
+        return x_in, x_out
+
+    def __call__(self) -> models.Model:
+        """
+            Build Keras model
+        """
+
+        x_in, x_out = self._build_network()
+        model = models.Model(inputs = x_in, outputs = x_out)
+
+        return model
