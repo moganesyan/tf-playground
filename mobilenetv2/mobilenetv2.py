@@ -47,13 +47,13 @@ class MobileNetV2():
         x = layers.Conv2D(
             num_filters_expanded, self.fwise_conv_kernel, (1, 1), padding='same')(x_in)
         x = layers.BatchNormalization()(x)
-        x = ReLU6(x)
+        x = ReLU6()(x)
         x = layers.DepthwiseConv2D(
             self.dwise_conv_kernel, (stride, stride), padding = 'same',
             depth_multiplier = self.dwise_conv_multiplier,
             data_format='channels_last')(x)
         x = layers.BatchNormalization()(x)
-        x = ReLU6(x)
+        x = ReLU6()(x)
         x = layers.Conv2D(
             num_filters_out, self.fwise_conv_kernel, (1,1), padding  = 'same')(x)
         x  = layers.BatchNormalization()(x)
@@ -80,7 +80,7 @@ class MobileNetV2():
         x = layers.Conv2D(
             int(floor(32 * self.alpha)), (3,3), (2,2), padding = 'same')(x_in)
         x = layers.BatchNormalization()(x)
-        x = ReLU6(x)
+        x = ReLU6()(x)
         #
         x = self._inverted_residual_block(
             x, int(floor(16 * self.alpha)), 1, 1)
@@ -126,11 +126,11 @@ class MobileNetV2():
         x = layers.Conv2D(
             int(floor(1280 * self.alpha)), (1,1), (1,1), padding = 'same')(x)
         x = layers.BatchNormalization()(x)
-        x = ReLU6(x)
+        x = ReLU6()(x)
         x = layers.GlobalAveragePooling2D()(x)
         #
         x = layers.Dense(int(floor(1280 * self.alpha)))(x)
-        x = ReLU6(x)
+        x = ReLU6()(x)
         x = layers.Dense(self.output_size)(x)
         x_out = layers.Softmax()(x)
 
