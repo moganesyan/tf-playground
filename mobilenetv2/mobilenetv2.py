@@ -60,11 +60,11 @@ class MobileNetV2():
 
         if x_in.shape[3] == num_filters_out:
             identity = x_in
-        else:
-            identity = layers.Conv2D(num_filters_out, (1,1), (1,1), 'same')(x_in)
-            identity = layers.BatchNormalization()(identity)
+        # else:
+        #     identity = layers.Conv2D(num_filters_out, (1,1), (1,1), 'same')(x_in)
+        #     identity = layers.BatchNormalization()(identity)
 
-        if stride == 2:
+        if stride == 2 or x_in.shape[3] != num_filters_out:
             x_out = x
         else:
             x_out = layers.Add()([x, identity])
