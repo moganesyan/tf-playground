@@ -82,7 +82,8 @@ class MobilenetV3():
             x = x_in
             x = layers.GlobalAveragePooling2D()(x)
             dim_x = x.shape[1]
-            x = layers.Dense(int(floor(dim_x / self._se_factor)))(x)
+            dim_x_scaled = max(int(floor(dim_x / self._se_factor)),4)
+            x = layers.Dense(dim_x_scaled)(x)
             x = ReLU()(x)
             x = layers.Dense(dim_x)(x)
             x = HSigm()(x)
@@ -93,8 +94,9 @@ class MobilenetV3():
             x = x_in
             x = layers.GlobalAveragePooling2D()(x)
             dim_x = x.shape[1]
+            dim_x_scaled = max(int(floor(dim_x / self._se_factor)),4)
             x = layers.Reshape((1,1,dim_x))(x)
-            x = layers.Conv2D(int(floor(dim_x / self._se_factor)), 1,1,'same')(x)
+            x = layers.Conv2D(dim_x_scaled, 1,1,'same')(x)
             x = ReLU()(x)
             x = layers.Conv2D(dim_x, 1,1,'same')(x)
             x = HSigm()(x)
@@ -166,19 +168,24 @@ class MobilenetV3():
 
         x = x_in
         for _, layer_dict in enumerate(self._architecture):
+            n_out_scaled = (int(floor(layer_dict['nout'] * self._alpha))
+                if layer_dict['nout'] is not None else None)
+            exp_scaled = (int(floor(layer_dict['exp'] * self._alpha))
+                if layer_dict['exp'] is not None else None)
+
             if layer_dict['type'] == 'conv2d':
                 x = self._conv2d_block(
-                    x, layer_dict['k'], layer_dict['exp'], layer_dict['nout'],
+                    x, layer_dict['k'], exp_scaled, n_out_scaled,
                     layer_dict['se'], layer_dict['nl'], layer_dict['bn'],
                     layer_dict['s'])
             elif layer_dict['type'] == 'bneck':
                 x = self._inverted_residual_block_v3(
-                    x, layer_dict['k'], layer_dict['exp'], layer_dict['nout'],
+                    x, layer_dict['k'], exp_scaled, n_out_scaled,
                     layer_dict['se'], layer_dict['nl'], layer_dict['bn'],
                     layer_dict['s'])
             elif layer_dict['type'] == 'pool':
                 x = self._pool_block(
-                    x, layer_dict['k'], layer_dict['exp'], layer_dict['nout'],
+                    x, layer_dict['k'], exp_scaled, n_out_scaled,
                     layer_dict['se'], layer_dict['nl'], layer_dict['bn'],
                     layer_dict['s'])
 
