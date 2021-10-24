@@ -58,15 +58,10 @@ class MobileNetV2():
             num_filters_out, self.fwise_conv_kernel, (1,1), padding  = 'same')(x)
         x  = layers.BatchNormalization()(x)
 
-        if x_in.shape[3] == num_filters_out:
-            identity = x_in
-        # else:
-        #     identity = layers.Conv2D(num_filters_out, (1,1), (1,1), 'same')(x_in)
-        #     identity = layers.BatchNormalization()(identity)
-
         if stride == 2 or x_in.shape[3] != num_filters_out:
             x_out = x
         else:
+            identity = x_in
             x_out = layers.Add()([x, identity])
         return x_out
 
@@ -127,11 +122,13 @@ class MobileNetV2():
             int(floor(1280 * self.alpha)), (1,1), (1,1), padding = 'same')(x)
         x = layers.BatchNormalization()(x)
         x = ReLU6()(x)
-        x = layers.GlobalAveragePooling2D()(x)
         #
-        x = layers.Dense(int(floor(1280 * self.alpha)))(x)
-        x = ReLU6()(x)
-        x = layers.Dense(self.output_size)(x)
+        x = layers.GlobalAveragePooling2D()(x)
+        x = layers.Reshape((1,1,x.shape[1]))(x)
+        #
+        x = layers.Dropout(0.20)(x)
+        x = layers.Conv2D(self.output_size, 1, 1, 'valid')(x)
+        x = layers.Flatten()(x)
         x_out = layers.Softmax()(x)
 
         return x_in, x_out
