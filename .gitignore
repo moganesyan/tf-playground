@@ -140,3 +140,4 @@ logs/*
 *.hdf5
 *sublime*
 resnet/
+notebooks/benchmark_playground.ipynb
