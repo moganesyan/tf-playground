@@ -11,7 +11,7 @@ class ReLU6(layers.Layer):
         super(ReLU6, self).__init__()
 
     def call(self, x_in: layers.Layer) -> layers.Layer:
-        x_out = tf.clip_by_value(x_in, 0.0, 6.0)
+        x_out = tf.maximum(tf.minimum(x_in, 6.0), 0)
         return x_out
 
 
@@ -26,7 +26,7 @@ class HSigm(layers.Layer):
     def call(self, x_in: layers.Layer) -> layers.Layer:
         x = tf.add(x_in, 3.0)
         x = ReLU6()(x)
-        x_out = tf.multiply(x, 1/6)
+        x_out = tf.multiply(x, 0.1666666667)
         return x_out
 
 
@@ -40,5 +40,5 @@ class HSwish(layers.Layer):
 
     def call(self, x_in: layers.Layer) -> layers.Layer:
         x = HSigm()(x_in)
-        x_out = layers.Multiply()([x_in, x]) 
+        x_out = tf.multiply(x_in, x)
         return x_out
