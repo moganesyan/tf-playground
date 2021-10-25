@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import models
 
-from utils.dl_utils import ReLU6
+from src.utils.dl_utils import ReLU6
 
 
 class MobileNetV1:

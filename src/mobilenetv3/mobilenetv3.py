@@ -6,7 +6,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from tensorflow.keras.layers import ReLU
 
-from utils.dl_utils import ReLU6, HSwish, HSigm
+from src.utils.dl_utils import ReLU6, HSwish, HSigm
 
 
 MOBILENETV3_LARGE = [
@@ -147,7 +147,7 @@ class MobilenetV3():
             x = layers.BatchNormalization()(x)
         x_out = nl()(x)
         return x_out
-    
+
     def _pool_block(self, x_in: layers.Layer, k: int,
                     exp: int, nout: int, se: bool,
                     nl: layers.Layer, bn: bool, s: int) -> layers.Layer:
