@@ -50,7 +50,7 @@ MOBILENETV3_SMALL = [
 ]
 
 
-class MobilenetV3():
+class MobileNetV3():
     """
         Mobilenet V3 Base class
     """
