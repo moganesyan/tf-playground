@@ -1,4 +1,3 @@
-import enum
 from math import floor
 from typing import Optional, Tuple, Union, List, Dict
 
@@ -6,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import models
 
-from src.utils.dl_utils import HSwish, HSigm
+from src.utils.dl_utils import HSwish, HSigm, StochasticDropout
 
 
 PARAMS_EFNT_B0: List[Dict] = [
@@ -36,12 +35,17 @@ class EfficientNetV1:
             Class Constructor.
         """
 
+        # base network parameters
         self._input_shape: Tuple[int, int, int] = input_shape
         self._output_size: int = output_size
         self._architecture: List[Dict] = architecture
 
+        # squeeze and excitation (SE) parameters
         self._se_kind: int = "conv"
         self._se_downsample: int = 24
+
+        # stochastic depth parameters
+        self._sd_survival_prob: float = 0.80
 
     def _block_se(self, x_in: layers.Layer) -> layers.Layer:
         """
@@ -129,10 +133,13 @@ class EfficientNetV1:
         if bn:
             x = layers.BatchNormalization()(x)
 
-        # residual connection
+        # residual connection and stochastic dropout
         if s == 2 or x_in.shape[3] != nout:
             x_out = x
         else:
+            x = StochasticDropout(self._sd_survival_prob)(x)
+            # x = layers.Dropout(
+            #     self._sd_survival_prob, noise_shape=(-1,1,1,1))(x)
             identity = x_in
             x_out = layers.Add()([identity, x])
         return x_out
