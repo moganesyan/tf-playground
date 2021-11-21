@@ -110,11 +110,14 @@ class MobileNetV3():
             Mobilenet V3 Inverted Residual Block with SE component
         """
 
-        # expansion
-        x = layers.Conv2D(exp, 1, 1, 'same')(x_in)
-        if bn:
-            x = layers.BatchNormalization()(x)
-        x = nl()(x)
+        x = x_in
+
+        # expansion. Do not apply if the expansion factor == 1
+        if exp > x_in.shape[3]:
+            x = layers.Conv2D(exp, 1, 1, 'same')(x_in)
+            if bn:
+                x = layers.BatchNormalization()(x)
+            x = nl()(x)
         # depthwise
         x = layers.DepthwiseConv2D(k,s,'same',1,data_format='channels_last')(x)
         if bn:
