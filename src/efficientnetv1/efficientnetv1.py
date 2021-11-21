@@ -6,19 +6,19 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import models
 
-from src.utils.dl_utils import ReLU6, HSwish, HSigm
+from src.utils.dl_utils import HSwish, HSigm
 
 
 PARAMS_EFNT_B0: List[Dict] = [
-    {'kind': 'conv2d' , 'nlayers': 1, 'k': 3, 'exp': None, 'nout': 32, 'se': None, 'nl': ReLU6, 'bn': True, 's': 2},
-    {'kind': 'mbconv' , 'nlayers': 1, 'k': 3, 'exp': 1, 'nout': 16, 'se': True, 'nl': ReLU6, 'bn': True, 's': 1},
-    {'kind': 'mbconv' , 'nlayers': 2, 'k': 3, 'exp': 6, 'nout': 24, 'se': True, 'nl': ReLU6, 'bn': True, 's': 2},
-    {'kind': 'mbconv' , 'nlayers': 2, 'k': 5, 'exp': 6, 'nout': 40, 'se': True, 'nl': ReLU6, 'bn': True, 's': 2},
-    {'kind': 'mbconv' , 'nlayers': 3, 'k': 3, 'exp': 6, 'nout': 80, 'se': True, 'nl': ReLU6, 'bn': True, 's': 1},
-    {'kind': 'mbconv' , 'nlayers': 3, 'k': 5, 'exp': 6, 'nout': 112, 'se': True, 'nl': ReLU6, 'bn': True, 's': 2},
-    {'kind': 'mbconv' , 'nlayers': 4, 'k': 5, 'exp': 6, 'nout': 192, 'se': True, 'nl': ReLU6, 'bn': True, 's': 2},
-    {'kind': 'mbconv' , 'nlayers': 1, 'k': 3, 'exp': 6, 'nout': 320, 'se': True, 'nl': ReLU6, 'bn': True, 's': 1},
-    {'kind': 'conv2d' , 'nlayers': 1, 'k': 1, 'exp': None, 'nout': 1280, 'se': None, 'nl': ReLU6, 'bn': True, 's': 1},
+    {'kind': 'conv2d' , 'nlayers': 1, 'k': 3, 'exp': None, 'nout': 32, 'se': None, 'nl': HSwish, 'bn': True, 's': 2},
+    {'kind': 'mbconv' , 'nlayers': 1, 'k': 3, 'exp': 1, 'nout': 16, 'se': True, 'nl': HSwish, 'bn': True, 's': 1},
+    {'kind': 'mbconv' , 'nlayers': 2, 'k': 3, 'exp': 6, 'nout': 24, 'se': True, 'nl': HSwish, 'bn': True, 's': 2},
+    {'kind': 'mbconv' , 'nlayers': 2, 'k': 5, 'exp': 6, 'nout': 40, 'se': True, 'nl': HSwish, 'bn': True, 's': 2},
+    {'kind': 'mbconv' , 'nlayers': 3, 'k': 3, 'exp': 6, 'nout': 80, 'se': True, 'nl': HSwish, 'bn': True, 's': 1},
+    {'kind': 'mbconv' , 'nlayers': 3, 'k': 5, 'exp': 6, 'nout': 112, 'se': True, 'nl': HSwish, 'bn': True, 's': 2},
+    {'kind': 'mbconv' , 'nlayers': 4, 'k': 5, 'exp': 6, 'nout': 192, 'se': True, 'nl': HSwish, 'bn': True, 's': 2},
+    {'kind': 'mbconv' , 'nlayers': 1, 'k': 3, 'exp': 6, 'nout': 320, 'se': True, 'nl': HSwish, 'bn': True, 's': 1},
+    {'kind': 'conv2d' , 'nlayers': 1, 'k': 1, 'exp': None, 'nout': 1280, 'se': None, 'nl': HSwish, 'bn': True, 's': 1},
     {'kind': 'pool' , 'nlayers': 1, 'k': None, 'exp': None, 'nout': None, 'se': None, 'nl': None, 'bn': None, 's': None},
 ]
 
@@ -55,14 +55,14 @@ class EfficientNetV1:
         x = layers.GlobalAveragePooling2D()(x)
         if self._se_kind == "fc":
             x = layers.Dense(dim_scaled)(x)
-            x = ReLU6()(x)
+            x = HSwish()(x)
             x = layers.Dense(dim)(x)
             x = HSigm()(x)
         elif self._se_kind == "conv":
             x = layers.Reshape((1,1,dim))(x)
             x = layers.Conv2D(
                 dim_scaled, 1, 1, 'same')(x)
-            x = ReLU6()(x)
+            x = HSwish()(x)
             x = layers.Conv2D(
                 dim, 1, 1, 'same')(x)
             x = HSigm()(x)
