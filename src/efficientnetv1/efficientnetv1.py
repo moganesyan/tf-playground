@@ -82,7 +82,7 @@ class EfficientNetV1:
             2D Convolution Block.
         """
 
-        x = layers.Conv2D(nout, k, s, 'same')(x_in)
+        x = layers.Conv2D(nout, k, s, 'same', use_bias=False)(x_in)
         if bn:
             x = layers.BatchNormalization()(x)
         x_out = nl()(x)
@@ -105,16 +105,14 @@ class EfficientNetV1:
 
         # expansion
         x = layers.Conv2D(
-            nexp, 1, 1, 'same'
-        )(x_in)
+            nexp, 1, 1, 'same', use_bias=False)(x_in)
         if bn:
             x = layers.BatchNormalization()(x)
         x = nl()(x)
 
         # depthwise conv
         x = layers.DepthwiseConv2D(
-            k, s, 'same', data_format="channels_last"
-        )(x)
+            k, s, 'same', data_format="channels_last", use_bias=False)(x)
         if bn:
             x = layers.BatchNormalization()(x)
         x = nl()(x)
@@ -125,8 +123,7 @@ class EfficientNetV1:
 
         # projection
         x = layers.Conv2D(
-            nout, 1, 1, 'same'
-        )(x)
+            nout, 1, 1, 'same', use_bias=False)(x)
         if bn:
             x = layers.BatchNormalization()(x)
 
