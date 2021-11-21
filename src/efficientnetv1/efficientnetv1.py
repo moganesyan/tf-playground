@@ -40,8 +40,8 @@ class EfficientNetV1:
         self._output_size: int = output_size
         self._architecture: List[Dict] = architecture
 
-        self._se_kind: int = "fc"
-        self._se_downsample: int = 16
+        self._se_kind: int = "conv"
+        self._se_downsample: int = 8
 
     def _block_se(self, x_in: layers.Layer) -> layers.Layer:
         """
@@ -50,15 +50,23 @@ class EfficientNetV1:
         """
 
         x = x_in
-
+        dim = x_in.shape[3]
+        dim_scaled = max(int(floor(dim / self._se_downsample)), 4)
+        x = layers.GlobalAveragePooling2D()(x)
         if self._se_kind == "fc":
-            dim = x_in.shape[3]
-            dim_scaled = max(int(floor(dim / self._se_downsample)), 4)
-            x = layers.GlobalAveragePooling2D()(x)
             x = layers.Dense(dim_scaled)(x)
             x = ReLU6()(x)
             x = layers.Dense(dim)(x)
             x = HSigm()(x)
+        elif self._se_kind == "conv":
+            x = layers.Reshape((1,1,dim))(x)
+            x = layers.Conv2D(
+                dim_scaled, 1, 1, 'same')(x)
+            x = ReLU6()(x)
+            x = layers.Conv2D(
+                dim, 1, 1, 'same')(x)
+            x = HSigm()(x)
+            x = layers.Flatten()(x)
 
         x_out = layers.Multiply()([x, x_in])
         return x_out
@@ -152,7 +160,7 @@ class EfficientNetV1:
         # architecture constructor
         for _, layer_dict in enumerate(self._architecture):
             for layer_idx in range(layer_dict["nlayers"]):
-                
+
                 # only apply stride on the 1st layer of the block
                 stride_active = layer_dict["s"] if layer_idx == 0 else 1
 
