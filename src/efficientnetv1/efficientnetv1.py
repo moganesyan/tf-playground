@@ -41,7 +41,7 @@ class EfficientNetV1:
         self._architecture: List[Dict] = architecture
 
         self._se_kind: int = "conv"
-        self._se_downsample: int = 8
+        self._se_downsample: int = 24
 
     def _block_se(self, x_in: layers.Layer) -> layers.Layer:
         """
@@ -51,7 +51,7 @@ class EfficientNetV1:
 
         x = x_in
         dim = x_in.shape[3]
-        dim_scaled = max(int(floor(dim / self._se_downsample)), 4)
+        dim_scaled = max(int(floor(dim / self._se_downsample)), 8)
         x = layers.GlobalAveragePooling2D()(x)
         if self._se_kind == "fc":
             x = layers.Dense(dim_scaled)(x)
@@ -102,13 +102,15 @@ class EfficientNetV1:
         """
 
         nexp = x_in.shape[3] * exp
+        x = x_in
 
-        # expansion
-        x = layers.Conv2D(
-            nexp, 1, 1, 'same', use_bias=False)(x_in)
-        if bn:
-            x = layers.BatchNormalization()(x)
-        x = nl()(x)
+        # expansion. Do not apply if expansion factor is 1 due to redundancy.
+        if exp > 1:
+            x = layers.Conv2D(
+                nexp, 1, 1, 'same', use_bias=False)(x)
+            if bn:
+                x = layers.BatchNormalization()(x)
+            x = nl()(x)
 
         # depthwise conv
         x = layers.DepthwiseConv2D(
