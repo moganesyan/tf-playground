@@ -61,8 +61,10 @@ class StochasticDropout(layers.Layer):
         })
         return config
 
-    def call(self, x_in: layers.Layer) -> layers.Layer:
-        if tf.keras.backend.learning_phase():
+    def call(self, x_in: layers.Layer, training = None) -> layers.Layer:
+        if not training:
+            return x_in
+        else:
             coin_toss = tf.random.uniform(
                 [], dtype=tf.float32)
             x_out = tf.cond(
@@ -70,4 +72,3 @@ class StochasticDropout(layers.Layer):
                 lambda x: tf.multiply(x_in, 0),
                 lambda x: tf.identity(x_in)))
             return x_out
-        return tf.identity(x_in)
