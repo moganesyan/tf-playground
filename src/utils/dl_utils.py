@@ -43,6 +43,7 @@ class HSwish(layers.Layer):
         x_out = tf.multiply(x_in, x)
         return x_out
 
+
 class StochasticDropout(layers.Layer):
     """
         Stochastic dropout layer.

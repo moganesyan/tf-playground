@@ -70,7 +70,6 @@ class EfficientNetV1:
             x = layers.Conv2D(
                 dim, 1, 1, 'same')(x)
             x = HSigm()(x)
-            x = layers.Flatten()(x)
 
         x_out = layers.Multiply()([x, x_in])
         return x_out
