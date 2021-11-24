@@ -133,11 +133,12 @@ dmypy.json
 *.png
 
 # Project specific
-*/paper/*
+**/paper/**
 .vscode/*
 logs/*
 *.h5
 *.hdf5
 *sublime*
-resnet/
+**/resnet/**
+*test*
 notebooks/benchmark_playground.ipynb
