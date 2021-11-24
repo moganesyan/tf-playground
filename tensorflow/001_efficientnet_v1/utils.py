@@ -101,13 +101,15 @@ class Conv2D(tf.Module):
                 name = "conv2d_bias"
             )
 
-            if self.use_bias:
-                return tf.nn.conv2d(
-                    x_in, self.W, self.stride, self.padding,
-                    self.data_format, self.dilation, name = "conv2d_conv"
-                ) + self.b
-            else:
-                return tf.nn.conv2d(
-                    x_in, self.W, self.stride, self.padding,
-                    self.data_format, self.dilation, name = "conv2d_conv"
-                )
+            self.is_built = True
+
+        if self.use_bias:
+            return tf.nn.conv2d(
+                x_in, self.W, self.stride, self.padding,
+                self.data_format, self.dilation, name = "conv2d_conv"
+            ) + self.b
+        else:
+            return tf.nn.conv2d(
+                x_in, self.W, self.stride, self.padding,
+                self.data_format, self.dilation, name = "conv2d_conv"
+            )
