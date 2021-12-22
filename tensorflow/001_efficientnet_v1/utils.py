@@ -39,7 +39,7 @@ class Dense(tf.Module):
                 name = "dense_bias"
             )
 
-            self._is_built = True
+            self.is_built = True
 
         return tf.matmul(x_in, self.W) + self.b
 
@@ -85,7 +85,7 @@ class Conv2D(tf.Module):
         """
 
         if not self.is_built:
-            filters_in = x_in.shape[-1]
+            filters_in = x_in.shape[3] if self.data_format == "NHWC" else x_in.shape[1]
             filter_weights = self.kernel + (filters_in, self.filters_out)
 
             self.W = tf.Variable(

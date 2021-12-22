@@ -25,7 +25,7 @@ class TestDenseLayer(unittest.TestCase):
         assert x_out.shape == (1,224,224,100)
 
 
-class TestConv2DLAYER(unittest.TestCase):
+class TestConv2DLayer(unittest.TestCase):
     """
         Test cases for the Conv2D layer.
     """
@@ -82,4 +82,26 @@ class TestConv2DLAYER(unittest.TestCase):
 
         x_out = layer(x_in)
 
-        assert x_out.shape == (1,112,112,32)  
+        assert x_out.shape == (1,112,112,32)
+
+    @unittest.skip
+    def test_output_shape_inverted(self):
+        """
+            Test the shape of the conv2d layer's output tensor.
+            NCHW format.
+        """
+
+        x_in = tf.constant(
+            tf.random.normal((1,3,224,224)),
+            dtype = tf.float32
+        )
+
+        layer = Conv2D(
+            32, 3, 1, 'same',
+            data_format = "channels_first",
+            name = "conv2d_test"
+        )
+
+        x_out = layer(x_in)
+
+        assert x_out.shape == (1,32,224,224)
