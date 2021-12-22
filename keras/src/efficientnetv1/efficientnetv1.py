@@ -8,7 +8,7 @@ from tensorflow.keras import models
 from src.utils.dl_utils import HSwish, HSigm, StochasticDropout
 
 
-PARAMS_EFNT_B0: List[Dict] = [
+BASE_ARCHITECTURE: List[Dict] = [
     {'kind': 'conv2d' , 'nlayers': 1, 'k': 3, 'exp': None, 'nout': 32, 'se': None, 'nl': HSwish, 'bn': True, 's': 2},
     {'kind': 'mbconv' , 'nlayers': 1, 'k': 3, 'exp': 1, 'nout': 16, 'se': True, 'nl': HSwish, 'bn': True, 's': 1},
     {'kind': 'mbconv' , 'nlayers': 2, 'k': 3, 'exp': 6, 'nout': 24, 'se': True, 'nl': HSwish, 'bn': True, 's': 2},
@@ -30,6 +30,9 @@ class EfficientNetV1:
     def __init__(self,
                  input_shape: Tuple[int, int, int],
                  output_size: int,
+                 width_factor: float,
+                 depth_factor: float,
+                 dropout_rate: float,
                  architecture: List[Dict]) -> None:
         """
             Class Constructor.
@@ -43,9 +46,12 @@ class EfficientNetV1:
         # squeeze and excitation (SE) parameters
         self._se_kind: int = "conv"
         self._se_downsample: int = 24
+        self._se_min: int = 8
 
-        # stochastic depth parameters
-        self._sd_survival_prob: float = 0.80
+        # scaling parameters
+        self._width_factor: float = width_factor
+        self._depth_factor: float = depth_factor
+        self._sd_survival_prob: float = 1 - dropout_rate
 
     def _block_se(self, x_in: layers.Layer) -> layers.Layer:
         """
@@ -55,7 +61,7 @@ class EfficientNetV1:
 
         x = x_in
         dim = x_in.shape[3]
-        dim_scaled = max(int(floor(dim / self._se_downsample)), 8)
+        dim_scaled = max(int(floor(dim / self._se_downsample)), self._se_min)
         x = layers.GlobalAveragePooling2D()(x)
         if self._se_kind == "fc":
             x = layers.Dense(dim_scaled)(x)
@@ -164,17 +170,19 @@ class EfficientNetV1:
 
         # architecture constructor
         for _, layer_dict in enumerate(self._architecture):
-            for layer_idx in range(layer_dict["nlayers"]):
-
+            nlayers_scaled = int(floor( layer_dict["nlayers"] * self._depth_factor))
+            for layer_idx in range(nlayers_scaled):
                 # only apply stride on the 1st layer of the block
                 stride_active = layer_dict["s"] if layer_idx == 0 else 1
 
                 if layer_dict["kind"] == "conv2d":
-                    x = self._block_conv2d(x, layer_dict["nout"], layer_dict["k"],
+                    nout_scaled = int(floor(layer_dict["nout"] * self._width_factor))
+                    x = self._block_conv2d(x, nout_scaled, layer_dict["k"],
                     stride_active, layer_dict["nl"], layer_dict["bn"])
                 elif layer_dict["kind"] == "mbconv":
+                    nout_scaled = int(floor(layer_dict["nout"] * self._width_factor))
                     x = self._block_mbconv(
-                        x, layer_dict["nout"], layer_dict["exp"], layer_dict["k"],
+                        x, nout_scaled, layer_dict["exp"], layer_dict["k"],
                         stride_active, layer_dict["nl"], layer_dict["bn"], layer_dict["se"])
                 elif layer_dict["kind"] == "pool":
                     x = self._block_pool(x)
@@ -195,5 +203,49 @@ class EfficientNetV1:
         return model
 
 
-def EfficientNetB0(input_shape: Tuple[int, int, int], output_size: int):
-    return EfficientNetV1(input_shape, output_size, PARAMS_EFNT_B0)
+def EfficientNetB0(output_size: int):
+    return EfficientNetV1(
+        (224, 224, 3), output_size, 1.0,
+        1.0, 0.2, BASE_ARCHITECTURE)
+
+
+def EfficientNetB1(output_size: int):
+    return EfficientNetV1(
+        (240, 240, 3), output_size, 1.0,
+        1.1, 0.2, BASE_ARCHITECTURE)
+
+
+def EfficientNetB2(output_size: int):
+    return EfficientNetV1(
+        (260, 260, 3), output_size, 1.1,
+        1.2, 0.3, BASE_ARCHITECTURE)
+
+
+def EfficientNetB3(output_size: int):
+    return EfficientNetV1(
+        (300, 300, 3), output_size, 1.2,
+        1.4, 0.3, BASE_ARCHITECTURE)
+
+
+def EfficientNetB4(output_size: int):
+    return EfficientNetV1(
+        (380, 380, 3), output_size, 1.4,
+        1.8, 0.4, BASE_ARCHITECTURE)
+
+
+def EfficientNetB5(output_size: int):
+    return EfficientNetV1(
+        (456, 456, 3), output_size, 1.6,
+        2.2, 0.4, BASE_ARCHITECTURE)
+
+
+def EfficientNetB6(output_size: int):
+    return EfficientNetV1(
+        (528, 528, 3), output_size, 1.8,
+        2.6, 0.5, BASE_ARCHITECTURE)
+
+
+def EfficientNetB7(output_size: int):
+    return EfficientNetV1(
+        (600, 600, 3), output_size, 2.0,
+        3.1, 0.5, BASE_ARCHITECTURE)
