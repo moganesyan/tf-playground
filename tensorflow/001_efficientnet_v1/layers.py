@@ -1,4 +1,5 @@
 from typing import Optional, Union, Tuple
+
 import tensorflow as tf
 
 
@@ -195,6 +196,7 @@ class GlobalAveragePooling2D(tf.Module):
     def __init__(self,
                  data_format: str = "channels_last",
                  name: str = None):
+
         super(GlobalAveragePooling2D, self).__init__(name)
 
         self.data_format: str = "NHWC" if data_format == "channels_last" else "NCHW"
@@ -231,14 +233,12 @@ class ReLU6(tf.Module):
     def __init__(self, name: str = None):
         super(ReLU6, self).__init__(name)
 
-        self.relu = tf.nn.relu
-
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
-            Calculate ReLU6 by capping the output of a relu to 6.
+            Calculate ReLU6 by min and max functions.
         """
 
-        x = self.relu(x_in)
+        x = tf.maximum(0.0, x_in)
         return tf.minimum(6.0, x)
 
 
