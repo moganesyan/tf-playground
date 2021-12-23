@@ -185,3 +185,39 @@ class DepthwiseConv2D(tf.Module):
                 x_in, self.W, self.stride, self.padding,
                 self.data_format, self.dilation, name = "dwise_conv2d_conv"
             )
+
+
+class GlobalAveragePooling2D(tf.Module):
+    """
+        2D Globla Average Pooling layer.
+    """
+
+    def __init__(self,
+                 data_format: str = "channels_last",
+                 name: str = None):
+        super(GlobalAveragePooling2D, self).__init__(name)
+
+        self.data_format: str = "NHWC" if data_format == "channels_last" else "NCHW"
+
+    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
+        """
+            Do global average pooling across channels.
+        """
+
+        if self.data_format == "NHWC":
+            (batch, height, width, channels) = x_in.shape
+        else:
+            (batch, channels, height, width) = x_in.shape
+
+        kernel = (height, width)
+        strides = (1, 1)
+        padding = "VALID"
+
+        x_pooled = tf.nn.avg_pool2d(
+            x_in, kernel, strides,
+            padding, self.data_format,
+            name = "global_avg_pool_2d"
+        )
+        return tf.reshape(
+            x_pooled, (batch, channels),
+            name = "global_avg_pool_2d_reshape")

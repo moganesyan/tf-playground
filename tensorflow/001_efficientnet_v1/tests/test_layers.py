@@ -1,8 +1,9 @@
 from typing import Union
 import unittest
+from unittest.case import TestCase
 import tensorflow as tf
 
-from utils import Dense, Conv2D, DepthwiseConv2D
+from utils import Dense, Conv2D, DepthwiseConv2D, GlobalAveragePooling2D
 
 
 class TestDenseLayer(unittest.TestCase):
@@ -207,3 +208,25 @@ class TestDepthwiseConv2DLayer(unittest.TestCase):
         x_out = layer(x_in)
 
         assert x_out.shape == (1,3,224,224)
+
+
+class TestGlobalAveragePooling2D(unittest.TestCase):
+    """
+        Test cases for global average pooling 2d.
+    """
+
+    def test_output(self):
+        """
+            Test output.
+        """
+
+        x_in = tf.constant(
+            tf.random.normal((1, 224, 224, 3)),
+            dtype = tf.float32
+        )
+
+        layer = GlobalAveragePooling2D(name = "test_global_avg_pool_2d")
+
+        x_out = layer(x_in)
+
+        assert x_out.shape == (1, 3)
