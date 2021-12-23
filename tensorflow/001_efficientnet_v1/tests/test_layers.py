@@ -3,7 +3,7 @@ import unittest
 from unittest.case import TestCase
 import tensorflow as tf
 
-from utils import Dense, Conv2D, DepthwiseConv2D, GlobalAveragePooling2D
+from layers import Dense, Conv2D, DepthwiseConv2D, GlobalAveragePooling2D
 
 
 class TestDenseLayer(unittest.TestCase):
