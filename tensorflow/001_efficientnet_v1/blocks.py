@@ -18,7 +18,7 @@ class MBConv6(tf.Module):
                  stride: int,
                  activation: tf.Module,
                  use_bn: bool,
-                 name=None):
+                 name = None):
 
         super(MBConv6, self).__init__(name=name)
 
@@ -30,7 +30,7 @@ class MBConv6(tf.Module):
         self.is_built: bool = False
 
         # initialise activation
-        self.act_expansion= activation("act_expansion")
+        self.act_expansion = activation("act_expansion")
         self.act_dwise = activation("act_dwise")
 
         # initialise batch norms

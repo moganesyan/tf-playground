@@ -1,4 +1,4 @@
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, List
 
 import tensorflow as tf
 
@@ -190,7 +190,7 @@ class DepthwiseConv2D(tf.Module):
 
 class GlobalAveragePooling2D(tf.Module):
     """
-        2D Globla Average Pooling layer.
+        2D Global Average Pooling layer.
     """
 
     def __init__(self,
@@ -225,59 +225,83 @@ class GlobalAveragePooling2D(tf.Module):
             name = "global_avg_pool_2d_reshape")
 
 
-class ReLU6(tf.Module):
+class BatchNormalization(tf.Module):
     """
-        ReLU6 activation function.
-    """
-
-    def __init__(self, name: str = None):
-        super(ReLU6, self).__init__(name)
-
-    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
-        """
-            Calculate ReLU6 by min and max functions.
-        """
-
-        x = tf.maximum(0.0, x_in)
-        return tf.minimum(6.0, x)
-
-
-class HSigm(tf.Module):
-    """
-        Hard sigmoid activation function.
+        Batch Normalization function.
     """
 
-    def __init__(self, name=None):
-        super(HSigm, self).__init__(name=name)
+    def __init__(self,
+                 axis: int = -1,
+                 momentum: float = 0.99,
+                 name: str = None):
+        super(BatchNormalization, self).__init__(name)
 
-        self.relu6 = ReLU6("relu6")
+        self.axis: int = axis
+        self.momentum: float = momentum
 
-    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
+        self.beta_weights: Optional[tf.Tensor] = None
+        self.gamma_weights: Optional[tf.Tensor] = None
+        self.axes: Optional[List] = None
+
+        self.mean_ma: Optional[tf.Tensor] = None
+        self.var_ma: Optional[tf.Tensor] = None
+
+        self.is_built: bool = True
+
+    def __call__(self, x_in: tf.Tensor, is_training: bool = False) -> tf.Tensor:
         """
-            Calculate the hard sigmoid by shifting along x axis and scaling
-            along the y axis.
-        """
-
-        x = tf.add(x_in, 3.0)
-        x = self.relu6(x)
-        return tf.multiply(x, 0.166666667)
-
-
-class HSwish(tf.Module):
-    """
-        HSwish activation function.
-    """
-
-    def __init__(self, name=None):
-        super(HSwish, self).__init__(name=name)
-
-        self.hsigm = HSigm("hsigm")
-
-    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
-        """
-            Calculate the hard swish by multiplying the output of the 
-            hard sigmoid by the input.
+            Apply batch normalization procedure.
         """
 
-        x = self.hsigm(x_in)
-        return tf.multiply(x_in, x)
+        if not self.is_built:
+            self.beta_weights = tf.Variable(
+                tf.zeros(x_in.shape, tf.float32),
+                trainable = True,
+                name = "bn_beta",
+                dtype = tf.float32)
+
+            self.gamma_weights = tf.Variable(
+                tf.ones(x_in.shape, tf.float32),
+                trainable = True,
+                name = "bn_gamma",
+                dtype = tf.float32)
+
+            if self.axis > -1:
+                self.axes = x_in.shape[:self.axis] + x_in.shape[(self.axis + 1):]
+                ma_shape = [1] * len(x_in.shape[:self.axis]) + [x_in.shape[self.axis]] + [1] * len(x_in.shape[(self.axis + 1):])
+            else:
+                self.axes = x_in.shape[:-1]
+                ma_shape = [1] * (len(x_in.shape) - 1) + [x_in.shape[-1]]
+
+            self.mean_ma = tf.Variable(
+                tf.zeros(ma_shape, tf.float32),
+                trainable = False,
+                name = "bn_mean_ma",
+                dtype = tf.float32
+            )
+
+            self.var_ma = tf.Variable(
+                tf.ones(ma_shape, tf.float32),
+                trainable = False,
+                name = "bn_var_ma",
+                dtype = tf.float32
+            )
+
+            self.momentum_const = tf.constant(
+                self.momentum, dtype = tf.float32,
+                shape = ma_shape, name = "bn_momentum"
+            )
+
+            self.is_built = True
+
+        if is_training:
+            x_mean, x_var = tf.nn.moments(
+                x_in, self.axes, name = "get_batch_moments")
+            x_out = (self.gamma_weights * (x_in - x_mean) / (x_var + 0.001)) + self.beta_weights
+
+            self.mean_ma.assign = (self.mean_ma * self.momentum_const) + (x_mean * (1 - self.momentum_const))
+            self.var_ma.assign = (self.var_ma * self.momentum_const) + (x_var * (1 - self.momentum_const))
+        else:
+            x_out = (self.gamma_weights * (x_in - self.mean_ma) / (self.var_ma + 0.001)) + self.beta_weights
+
+        return x_out
