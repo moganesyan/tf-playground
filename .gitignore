@@ -140,5 +140,5 @@ logs/*
 *.hdf5
 *sublime*
 **/resnet/**
-*test*
+**/keras/*test*
 notebooks/benchmark_playground.ipynb
