@@ -245,8 +245,11 @@ class BatchNormalization(tf.Module):
 
         self.mean_ma: Optional[tf.Tensor] = None
         self.var_ma: Optional[tf.Tensor] = None
+        self.epsilon: tf.Tensor = tf.constant(
+            0.0000001, dtype = tf.float32,
+            name = 'epsilon')
 
-        self.is_built: bool = True
+        self.is_built: bool = False
 
     def __call__(self, x_in: tf.Tensor, is_training: bool = False) -> tf.Tensor:
         """
@@ -266,12 +269,12 @@ class BatchNormalization(tf.Module):
                 name = "bn_gamma",
                 dtype = tf.float32)
 
-            if self.axis > -1:
-                self.axes = x_in.shape[:self.axis] + x_in.shape[(self.axis + 1):]
-                ma_shape = [1] * len(x_in.shape[:self.axis]) + [x_in.shape[self.axis]] + [1] * len(x_in.shape[(self.axis + 1):])
-            else:
-                self.axes = x_in.shape[:-1]
+            if self.axis == -1:
+                self.axes = list(range(0, len(x_in.shape) - 1))
                 ma_shape = [1] * (len(x_in.shape) - 1) + [x_in.shape[-1]]
+            else:                
+                self.axes = list(range(0, self.axis)) + list(range(self.axis + 1, len(x_in.shape)))
+                ma_shape = [1] * len(x_in.shape[:self.axis]) + [x_in.shape[self.axis]] + [1] * len(x_in.shape[(self.axis + 1):])
 
             self.mean_ma = tf.Variable(
                 tf.zeros(ma_shape, tf.float32),
@@ -297,11 +300,11 @@ class BatchNormalization(tf.Module):
         if is_training:
             x_mean, x_var = tf.nn.moments(
                 x_in, self.axes, name = "get_batch_moments")
-            x_out = (self.gamma_weights * (x_in - x_mean) / (x_var + 0.001)) + self.beta_weights
+            x_out = (self.gamma_weights * (x_in - x_mean) / (x_var + self.epsilon)) + self.beta_weights
 
-            self.mean_ma.assign = (self.mean_ma * self.momentum_const) + (x_mean * (1 - self.momentum_const))
-            self.var_ma.assign = (self.var_ma * self.momentum_const) + (x_var * (1 - self.momentum_const))
+            self.mean_ma.assign((self.mean_ma * self.momentum_const) + (x_mean * (1 - self.momentum_const)))
+            self.var_ma.assign((self.var_ma * self.momentum_const) + (x_var * (1 - self.momentum_const)))
         else:
-            x_out = (self.gamma_weights * (x_in - self.mean_ma) / (self.var_ma + 0.001)) + self.beta_weights
+            x_out = (self.gamma_weights * (x_in - self.mean_ma) / (self.var_ma + self.epsilon)) + self.beta_weights
 
         return x_out
