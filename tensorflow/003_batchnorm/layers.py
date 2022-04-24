@@ -274,13 +274,13 @@ class BatchNormalization(tf.Module):
 
         if not self.is_built:
             self.beta_weights = tf.Variable(
-                tf.zeros(x_in.shape, tf.float32),
+                tf.zeros(x_in.shape[1:], tf.float32),
                 trainable = True,
                 name = "bn_beta",
                 dtype = tf.float32)
 
             self.gamma_weights = tf.Variable(
-                tf.ones(x_in.shape, tf.float32),
+                tf.ones(x_in.shape[1:], tf.float32),
                 trainable = True,
                 name = "bn_gamma",
                 dtype = tf.float32)
