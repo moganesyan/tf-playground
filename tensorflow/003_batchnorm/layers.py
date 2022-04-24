@@ -20,6 +20,7 @@ class Dense(tf.Module):
         self.W: Optional[tf.Variable] = None
         self.b: Optional[tf.Variable] = None
 
+    @tf.Module.with_name_scope
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
             Build tensor on the first call.
@@ -42,7 +43,10 @@ class Dense(tf.Module):
 
             self.is_built = True
 
-        return tf.matmul(x_in, self.W) + self.b
+        return tf.add(
+            tf.matmul(x_in, self.W, name='dense_matmul'),
+            self.b,
+            name = 'dense_add_bias')
 
 
 class Conv2D(tf.Module):
@@ -79,6 +83,7 @@ class Conv2D(tf.Module):
         self.W: Optional[tf.Variable] = None
         self.b: Optional[tf.Variable] = None
 
+    @tf.Module.with_name_scope
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
             Build tensor on the first call.
@@ -106,10 +111,13 @@ class Conv2D(tf.Module):
             self.is_built = True
 
         if self.use_bias:
-            return tf.nn.conv2d(
-                x_in, self.W, self.stride, self.padding,
-                self.data_format, self.dilation, name = 'conv2d_conv'
-            ) + self.b
+            return tf.add(
+                tf.nn.conv2d(
+                    x_in, self.W, self.stride, self.padding,
+                    self.data_format, self.dilation, name = 'conv2d_conv'),
+                    self.b,
+                    name = 'conv2d_add_bias'
+                )
         else:
             return tf.nn.conv2d(
                 x_in, self.W, self.stride, self.padding,
@@ -153,6 +161,7 @@ class DepthwiseConv2D(tf.Module):
         self.W: Optional[tf.Variable] = None
         self.b: Optional[tf.Variable] = None
 
+    @tf.Module.with_name_scope
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
             Build tensor on first call.
@@ -164,24 +173,28 @@ class DepthwiseConv2D(tf.Module):
             filter_weights = self.kernel + (filters_in, self.depth_multiplier)
 
             self.W = tf.Variable(
-                tf.random.normal(filter_weights),
+                tf.initializers.GlorotUniform()(filter_weights),
                 trainable = True,
                 dtype = tf.float32,
                 name = "dwise_conv2d_filters"
             )
-            self.b = tf.Variable(
-                tf.random.normal((filters_in * self.depth_multiplier,)),
-                trainable = True,
-                dtype = tf.float32,
-                name = "dwise_conv2d_bias"
-            )
+            if self.use_bias:
+                self.b = tf.Variable(
+                    tf.initializers.GlorotUniform()((filters_in * self.depth_multiplier,)),
+                    trainable = True,
+                    dtype = tf.float32,
+                    name = "dwise_conv2d_bias"
+                )
             self.is_built = True
 
         if self.use_bias:
-            return tf.nn.depthwise_conv2d(
-                x_in, self.W, self.stride, self.padding,
-                self.data_format, self.dilation, name = "dwise_conv2d_conv"
-            ) + self.b
+            return tf.add(
+                tf.nn.depthwise_conv2d(
+                    x_in, self.W, self.stride, self.padding,
+                    self.data_format, self.dilation, name = "dwise_conv2d_conv"),
+                self.b,
+                name = 'dwise_conv2d_add_bias'
+            )
         else:
             return tf.nn.depthwise_conv2d(
                 x_in, self.W, self.stride, self.padding,
@@ -202,6 +215,7 @@ class GlobalAveragePooling2D(tf.Module):
 
         self.data_format: str = "NHWC" if data_format == "channels_last" else "NCHW"
 
+    @tf.Module.with_name_scope
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
             Do global average pooling across channels.
@@ -252,6 +266,7 @@ class BatchNormalization(tf.Module):
 
         self.is_built: bool = False
 
+    @tf.Module.with_name_scope
     def __call__(self, x_in: tf.Tensor, training: bool = False) -> tf.Tensor:
         """
             Apply batch normalization procedure.
