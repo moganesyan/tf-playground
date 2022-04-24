@@ -48,31 +48,6 @@ def loss_fn(y_pred, y_true):
 EPOCHS = 1
 LEARNING_RATE = 0.001
 
-## train model with no BN
-
-losses = []
-for epoch in range(EPOCHS):
-    print("\nStart of epoch %d" % (epoch,))
-
-    for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
-
-        with tf.GradientTape() as tape:
-            y_pred = model(x_batch_train, training = True)
-            loss_value = loss_fn(y_pred, y_batch_train)
-            losses.append(loss_value)
-
-            grads = tape.gradient(loss_value, model.trainable_variables)
-
-        for grad, weight in zip(grads, model.trainable_variables):
-            weight.assign_sub(LEARNING_RATE * grad)
-
-        if step % 10 == 0:
-            print(
-                "Training loss (for one batch) at step %d: %.4f"
-                % (step, float(loss_value))
-            )
-            print("Seen so far: %s samples" % ((step + 1) * BATCH_SIZE))
-
 ## train model with BN
 losses_bn = []
 for epoch in range(EPOCHS):
@@ -96,6 +71,31 @@ for epoch in range(EPOCHS):
                 % (step, float(loss_value))
             )
             print("Seen so far: %s samples" % ((step + 1) * BATCH_SIZE))
+
+## train model with no BN
+losses = []
+for epoch in range(EPOCHS):
+    print("\nStart of epoch %d" % (epoch,))
+
+    for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
+
+        with tf.GradientTape() as tape:
+            y_pred = model(x_batch_train, training = True)
+            loss_value = loss_fn(y_pred, y_batch_train)
+            losses.append(loss_value)
+
+            grads = tape.gradient(loss_value, model.trainable_variables)
+
+        for grad, weight in zip(grads, model.trainable_variables):
+            weight.assign_sub(LEARNING_RATE * grad)
+
+        if step % 10 == 0:
+            print(
+                "Training loss (for one batch) at step %d: %.4f"
+                % (step, float(loss_value))
+            )
+            print("Seen so far: %s samples" % ((step + 1) * BATCH_SIZE))
+
 
 ## plot losses
 fig, ax = plt.subplots(1,1)
