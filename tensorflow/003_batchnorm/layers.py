@@ -28,13 +28,13 @@ class Dense(tf.Module):
 
         if not self.is_built:
             self.W = tf.Variable(
-                tf.random.normal([x_in.shape[-1], self.neurons]),
+                tf.initializers.GlorotUniform()([x_in.shape[-1], self.neurons]),
                 trainable = True,
                 dtype = tf.float32,
                 name = "dense_weights"
             )
             self.b = tf.Variable(
-                tf.random.normal((self.neurons,)),
+                tf.initializers.GlorotUniform()((self.neurons,)),
                 trainable = True,
                 dtype = tf.float32,
                 name = "dense_bias"
@@ -90,29 +90,30 @@ class Conv2D(tf.Module):
             filter_weights = self.kernel + (filters_in, self.filters_out)
 
             self.W = tf.Variable(
-                tf.random.normal(filter_weights),
+                tf.initializers.GlorotUniform()(filter_weights),
                 trainable = True,
                 dtype = tf.float32,
                 name = "conv2d_filters"
             )
-            self.b = tf.Variable(
-                tf.random.normal((self.filters_out,)),
-                trainable = True,
-                dtype = tf.float32,
-                name = "conv2d_bias"
-            )
+            if self.use_bias:
+                self.b = tf.Variable(
+                    tf.initializers.GlorotUniform()((self.filters_out,)),
+                    trainable = True,
+                    dtype = tf.float32,
+                    name = "conv2d_bias"
+                )
 
             self.is_built = True
 
         if self.use_bias:
             return tf.nn.conv2d(
                 x_in, self.W, self.stride, self.padding,
-                self.data_format, self.dilation, name = "conv2d_conv"
+                self.data_format, self.dilation, name = 'conv2d_conv'
             ) + self.b
         else:
             return tf.nn.conv2d(
                 x_in, self.W, self.stride, self.padding,
-                self.data_format, self.dilation, name = "conv2d_conv"
+                self.data_format, self.dilation, name = 'conv2d_conv'
             )
 
 
@@ -251,7 +252,7 @@ class BatchNormalization(tf.Module):
 
         self.is_built: bool = False
 
-    def __call__(self, x_in: tf.Tensor, is_training: bool = False) -> tf.Tensor:
+    def __call__(self, x_in: tf.Tensor, training: bool = False) -> tf.Tensor:
         """
             Apply batch normalization procedure.
         """
@@ -297,7 +298,7 @@ class BatchNormalization(tf.Module):
 
             self.is_built = True
 
-        if is_training:
+        if training:
             x_mean, x_var = tf.nn.moments(
                 x_in, self.axes, name = "get_batch_moments")
             x_out = (self.gamma_weights * (x_in - x_mean) / (x_var + self.epsilon)) + self.beta_weights
