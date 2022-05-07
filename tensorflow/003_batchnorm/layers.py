@@ -316,11 +316,11 @@ class BatchNormalization(tf.Module):
         if training:
             x_mean, x_var = tf.nn.moments(
                 x_in, self.axes, name = "get_batch_moments")
-            x_out = (self.gamma_weights * (x_in - x_mean) / (x_var + self.epsilon)) + self.beta_weights
+            x_out = (self.gamma_weights * (x_in - x_mean) / tf.math.sqrt(x_var + self.epsilon)) + self.beta_weights
 
             self.mean_ma.assign((self.mean_ma * self.momentum_const) + (x_mean * (1 - self.momentum_const)))
             self.var_ma.assign((self.var_ma * self.momentum_const) + (x_var * (1 - self.momentum_const)))
         else:
-            x_out = (self.gamma_weights * (x_in - self.mean_ma) / (self.var_ma + self.epsilon)) + self.beta_weights
+            x_out = (self.gamma_weights * (x_in - self.mean_ma) / tf.math.sqrt(self.var_ma + self.epsilon)) + self.beta_weights
 
         return x_out
