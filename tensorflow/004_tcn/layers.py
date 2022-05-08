@@ -10,6 +10,10 @@ class Dense(tf.Module):
 
     def __init__(self, neurons: int, name: str = None) -> None:
         """
+            Forward operation for the dense layer.
+            Build the weights and bias variables on the first call.
+            Calculate output tensor through matrix multiplication and add bias.
+
             args:
                 neurons: int - Number of neurons for the fully connected layer.
                 name: str - Name of the layer.
@@ -29,10 +33,6 @@ class Dense(tf.Module):
 
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
-            Forward operation for the dense layer.
-            Build the weights and bias variables on the first call.
-            Calculate output tensor through matrix multiplication and add bias.
-
             args:
                 x_in: tf.Tensor - Input tensor of dimension (None, input_size).
             returns:
@@ -78,6 +78,10 @@ class Conv1D(tf.Module):
                  use_bias: bool = True,
                  name: str = None) -> None:
         """
+            Forward operation for the 1D convolution layer.
+            Determine convolution dimensions on the first call.
+            Return feature maps after 1D convolution operation.
+
             args:
                 n_filters: int - Number of convolutional filters.
                 kernel_size: int - Convolutional filter size.
@@ -114,10 +118,6 @@ class Conv1D(tf.Module):
 
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
-            Forward operation for the 1D convolution layer.
-            Determine convolution dimensions on the first call.
-            Return feature maps after 1D convolution operation.
-
             args:
                 x_in: tf.Tensor - Input tensor of dimension (None, input_size, in_channels).
             returns:
@@ -185,6 +185,8 @@ class Flatten(tf.Module):
 
     def __init__(self, name: str = None) -> None:
         """
+            Reshape input tensor into (None, -1) shape.
+
             args:
                 name: str - Name of the layer.
             returns:
@@ -195,8 +197,6 @@ class Flatten(tf.Module):
 
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
-            Reshape input tensor into (None, -1) shape.
-
             args:
                 x_in: tf.Tensor - Input tensor of shape (None, dim0, ..., dimN-1)
             returns:
@@ -218,6 +218,8 @@ class GlobalMaxPooling1D(tf.Module):
                  data_format: str = "channels_last",
                  name: str = None) -> None:
         """
+            Calculate channel wise global max pooling.
+
             args:
                 data_format: str - Input dimension order ['channels_last', 'channels_first'].
                 name: str - Name of the layer.
@@ -232,12 +234,10 @@ class GlobalMaxPooling1D(tf.Module):
 
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
-            Calculate channel wise global max pooling.
-
             args:
                 x_in: tf.Tensor - Input tensor of dimension (None, input_size, in_channels).
             returns:
-                x_out: tf.Tensor - Input tensor of dimension (None, 1, in_channels).
+                x_out: tf.Tensor - Output tensor of dimension (None, 1, in_channels).
         """
 
         assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
@@ -249,3 +249,119 @@ class GlobalMaxPooling1D(tf.Module):
         x_out = tf.squeeze(x_out)
 
         return x_out
+
+
+class BatchNormalization(tf.Module):
+    """
+        Batch normalization layer.
+    """
+
+    def __init__(self,
+                 axis: int = -1,
+                 momentum: float = 0.99,
+                 epsilon: float = 0.000001,
+                 name: str = None) -> None:
+        """
+            Apply batch normalization.
+            At train time: Calculate batchwise mean and variance and scale input.
+            At inference time: Scale using learned population mean and variance.
+
+            args:
+                axis: int - Axis across which to calculate batch normalization.
+                momentum: float - Momentum for adjusting running mean and variance.
+                epsilon: float - Small number for division stability.
+                name: Name of the layer.
+        """
+
+        super().__init__(name)
+
+        self._axis = axis
+        self._momentum = momentum
+        self._epsilon = epsilon
+
+        # Do not initialize variables until first call
+        self._beta = None
+        self._gamma = None
+
+        self._mean_ma = None
+        self._var_ma = None
+
+        self._axes = None
+
+        # is built flag for dynamic input size inference
+        self._is_built = False
+
+    def __call__(self,
+                 x_in: tf.Tensor,
+                 training: bool = False) -> tf.Tensor:
+        """
+            args:
+                x_in: tf.Tensor - Input tensor of dimension (None, input_size, in_channels).
+                training: bool - Flag to toggle train time and inference time behaviour.
+            returns:
+                x_out: tf.Tensor - Output tensor of dimension (None, input_size, in_channels).  
+        """
+
+        if not self._is_built:
+
+            # calculate shape for the normalization axes vector
+            if self._axis == -1:
+                self._axes = list(range(0, len(x_in.shape) - 1))
+            else:
+                self._axes = list(range(0, self._axis)) + list(range(self._axis + 1, len(x_in.shape)))
+
+            # initialize variables
+            self._beta = tf.Variable(
+                initial_value = tf.constant(0, tf.float32, x_in.shape),
+                trainable = True,
+                name = "bnorm_beta",
+                dtype = tf.float32
+            )
+
+            self._gamma = tf.Variable(
+                initial_value = tf.constant(1, tf.float32, x_in.shape),
+                trainable = True,
+                name = "bn_gamma",
+                dtype = tf.float32
+            )
+
+            # calculate shape for the ma vectors
+            ma_shape = [1] * len(x_in.shape)
+            ma_shape[self._axis] = x_in.shape[self._axis]
+
+            self._mean_ma = tf.Variable(
+                initial_value = tf.constant(0, tf.float32, ma_shape),
+                trainable = False,
+                name = "bnorm_mean_ma",
+                dtype = tf.float32
+            )
+
+            self._var_ma = tf.Variable(
+                initial_value = tf.constant(1, tf.float32, ma_shape),
+                trainable = False,
+                dtype = tf.float32,
+                name = "bnorm_var_ma"
+            )
+
+            self._is_built = True
+
+        if training:
+            # calculate batchwise mean and variance
+            mean, var = tf.nn.moments(
+                x_in, self._axes
+            )
+
+            # scale batch
+            x_out = (x_in - mean) / tf.math.sqrt((var + self._epsilon))
+            x_out = (self._gamma * x_out) + self._beta
+
+            # update moving mean and variance
+            self._mean_ma.assign((self._mean_ma * self._momentum) + (mean * (1 - self._momentum)))
+            self._var_ma.assign((self._var_ma * self._momentum) + (var * (1 - self._momentum)))
+
+            return x_out
+        else:
+            x_out = (x_in - self._mean_ma) / tf.math.sqrt((self._var_ma + self._epsilon))
+            x_out = (self._gamma * x_out) + self._beta
+
+            return x_out

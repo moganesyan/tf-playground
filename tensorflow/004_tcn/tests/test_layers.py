@@ -1,9 +1,12 @@
-from typing import Union
 import unittest
 from unittest.case import TestCase
+
+import numpy as np
 import tensorflow as tf
 
-from layers import Dense, Conv1D, Flatten, GlobalMaxPooling1D
+from layers import Dense, Conv1D
+from layers import Flatten, GlobalMaxPooling1D
+from layers import BatchNormalization
 
 
 class TestDenseLayer(TestCase):
@@ -240,3 +243,82 @@ class TestGlabalMaxPooling1DLayer(TestCase):
         test_tensor = GlobalMaxPooling1D(data_format = 'channels_first')(tensor_in)
 
         assert tensor_out.shape == test_tensor.shape
+
+
+class TestBatchNormalization(TestCase):
+    """
+        Tests for the batch normalization layer.
+    """
+
+    def test_output_shape(self):
+        """
+            Test output shape on a standard case.
+                Normalization along 2 axis.
+            Test output shape of the normalization axes.
+        """
+
+        tensor_in = tf.constant(
+            tf.random.normal((32, 200, 10)),
+            tf.float32
+        )
+
+        tensor_out = tf.constant(
+            tf.random.normal((32, 200, 10)),
+            tf.float32
+        )
+
+        bn = BatchNormalization()
+        test_tensor = bn(tensor_in)
+
+        assert tensor_out.shape == test_tensor.shape
+        assert bn._axes == [0,1]
+
+    def test_output_shape_inverted(self):
+        """
+            Test output shape on a non-standard case.
+                Normalization along 1 axis.
+            Test output shape of the normalization axes.
+        """
+
+        tensor_in = tf.constant(
+            tf.random.normal((32, 200, 10)),
+            tf.float32
+        )
+
+        tensor_out = tf.constant(
+            tf.random.normal((32, 200, 10)),
+            tf.float32
+        )
+
+        bn = BatchNormalization(axis = 1)
+        test_tensor = bn(tensor_in)
+
+        assert tensor_out.shape == test_tensor.shape
+        assert bn._axes == [0,2]
+
+    def test_inference_mode(self):
+        """
+            Test inference mode.
+            Output must be (nearly) the same as input due to no training
+                taking place prior (default 0 mean, 1 variance scaling).
+        """
+
+        tensor_in = tf.constant(
+            3,
+            tf.float32,
+            (32, 200, 10)
+        )
+
+        tensor_out = tf.constant(
+            3,
+            tf.float32,
+            (32, 200, 10)
+        )
+
+        # apply batch normalization
+        bn = BatchNormalization()
+        test_tensor = bn(tensor_in)
+
+        # assert that the values are (near unchanged)
+        np.testing.assert_almost_equal(
+            tensor_out.numpy(), test_tensor.numpy(), decimal = 3)
