@@ -124,6 +124,8 @@ class Conv1D(tf.Module):
                 x_out: tf.Tensor - Output tensor of dimension (None, output_size, out_channels).
         """
 
+        assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
+
         if not self._is_built:
             filters_in = x_in.shape[2] if self._data_format == "NWC" else x_in.shape[1]
             kernel_shape = (self._kernel_size, filters_in, self._n_filters)
@@ -172,5 +174,78 @@ class Conv1D(tf.Module):
 
         if self._use_bias:
             x_out = x_out + self.b
+
+        return x_out
+
+
+class Flatten(tf.Module):
+    """
+        Flattening layer.
+    """
+
+    def __init__(self, name: str = None) -> None:
+        """
+            args:
+                name: str - Name of the layer.
+            returns:
+                None
+        """
+
+        super().__init__(name)
+
+    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
+        """
+            Reshape input tensor into (None, -1) shape.
+
+            args:
+                x_in: tf.Tensor - Input tensor of shape (None, dim0, ..., dimN-1)
+            returns:
+                x_out: tf.Tensor - Output tensor of shape (None, -1)
+        """
+
+        x_out = tf.reshape(
+            x_in, (x_in.shape[0], -1), name = 'flatten')
+
+        return x_out
+
+
+class GlobalMaxPooling1D(tf.Module):
+    """
+        Global 1D max pooling layer.
+    """
+
+    def __init__(self,
+                 data_format: str = "channels_last",
+                 name: str = None) -> None:
+        """
+            args:
+                data_format: str - Input dimension order ['channels_last', 'channels_first'].
+                name: str - Name of the layer.
+            returns:
+                None
+        """
+
+        super().__init__(name)
+
+        assert data_format in ('channels_first', 'channels_last'), "Invalid data format."
+        self._data_format = 'NWC' if data_format == 'channels_last' else 'NCW'
+
+    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
+        """
+            Calculate channel wise global max pooling.
+
+            args:
+                x_in: tf.Tensor - Input tensor of dimension (None, input_size, in_channels).
+            returns:
+                x_out: tf.Tensor - Input tensor of dimension (None, 1, in_channels).
+        """
+
+        assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
+
+        kernel_size = x_in.shape[1] if self._data_format == "NWC" else x_in.shape[2]
+        x_out = tf.nn.max_pool1d(
+            x_in, kernel_size, 1, 'VALID', self._data_format
+        )
+        x_out = tf.squeeze(x_out)
 
         return x_out

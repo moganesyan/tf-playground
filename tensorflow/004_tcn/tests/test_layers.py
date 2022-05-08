@@ -3,7 +3,7 @@ import unittest
 from unittest.case import TestCase
 import tensorflow as tf
 
-from layers import Dense, Conv1D
+from layers import Dense, Conv1D, Flatten, GlobalMaxPooling1D
 
 
 class TestDenseLayer(TestCase):
@@ -168,5 +168,75 @@ class TestConv1DLayer(TestCase):
         )
 
         test_tensor = Conv1D(200, 3, 1, 1, 'causal')(tensor_in)
+
+        assert tensor_out.shape == test_tensor.shape
+
+
+class TestFlattenLayer(TestCase):
+    """
+        Tests for the flatten layer.
+    """
+
+    def test_output_shape(self):
+        """
+            Test output shape on a standard case.
+        """
+
+        tensor_in = tf.constant(
+            tf.random.normal((32, 200, 10)),
+            tf.float32
+        )
+
+        tensor_out = tf.constant(
+            tf.random.normal((32, 2000)),
+            tf.float32
+        )
+
+        test_tensor = Flatten()(tensor_in)
+
+        assert tensor_out.shape == test_tensor.shape
+
+
+class TestGlabalMaxPooling1DLayer(TestCase):
+    """
+        Tests for the global 1D max pooling layer.
+    """
+
+    def test_output_shape(self):
+        """
+            Test output shape on a standard case.
+        """
+
+        tensor_in = tf.constant(
+            tf.random.normal((32, 200, 10)),
+            tf.float32
+        )
+
+        tensor_out = tf.constant(
+            tf.random.normal((32, 10)),
+            tf.float32
+        )
+
+        test_tensor = GlobalMaxPooling1D()(tensor_in)
+
+        assert tensor_out.shape == test_tensor.shape
+
+    @unittest.skip("Channels first maxpool not supported on CPU")
+    def test_output_shape_inverted(self):
+        """
+            Test output shape for 'channels_first' mode.
+        """
+
+        tensor_in = tf.constant(
+            tf.random.normal((32, 10, 200)),
+            tf.float32
+        )
+
+        tensor_out = tf.constant(
+            tf.random.normal((32, 10)),
+            tf.float32
+        )
+
+        test_tensor = GlobalMaxPooling1D(data_format = 'channels_first')(tensor_in)
 
         assert tensor_out.shape == test_tensor.shape
