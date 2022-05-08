@@ -155,8 +155,9 @@ class Conv1D(tf.Module):
                     self._dilation_rate
                 )
         else:
-            paddings = (tf.constant([[self._kernel_size - 1, 0], [0, 0]])
-                if self._data_format == "NWC" else tf.constant([[0, 0], [self._kernel_size - 1, 0]]))
+            to_pad = self._dilation_rate * (self._kernel_size - 1)
+            paddings = (tf.constant([[0, 0], [to_pad, 0], [0, 0]])
+                if self._data_format == "NWC" else tf.constant([[0, 0], [0, 0], [to_pad, 0]]))
             x_out = tf.pad(
                 x_in, paddings,
                 'CONSTANT', 0
