@@ -30,7 +30,7 @@ class TCN(tf.Module):
         self._maxpool = GlobalMaxPooling1D(name = 'global_max_pool')
         self._fc1 = Dense(num_classes, name = 'out_classes')
 
-    # @tf.function(input_signature = [tf.TensorSpec(shape=(None, 100, 50), dtype=tf.float32)])
+    @tf.function(input_signature = [tf.TensorSpec(shape=(None, 100, 50), dtype=tf.float32)])
     def __call__(self,
                  x_in: tf.Tensor,
                  training: bool = False) -> tf.Tensor:
@@ -46,11 +46,8 @@ class TCN(tf.Module):
         x = self._block_2(x, training = training)
         x = self._block_3(x, training = training)
         x = self._block_4(x, training = training)
-        print(x.shape)
         x = self._maxpool(x)
-        print(x.shape)
         x = self._fc1(x)
-        print(x.shape)
 
         x_out = tf.nn.softmax(x, name = 'softmax')
 
