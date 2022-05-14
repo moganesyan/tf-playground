@@ -10,7 +10,6 @@ class Dense(tf.Module):
 
     def __init__(self, neurons: int, name: str = None) -> None:
         """
-            Forward operation for the dense layer.
             Build the weights and bias variables on the first call.
             Calculate output tensor through matrix multiplication and add bias.
 
@@ -78,8 +77,7 @@ class Conv1D(tf.Module):
                  use_bias: bool = True,
                  name: str = None) -> None:
         """
-            Forward operation for the 1D convolution layer.
-            Determine convolution dimensions on the first call.
+            Calculate convolution dimensions on the first call.
             Return feature maps after 1D convolution operation.
 
             args:
@@ -271,6 +269,8 @@ class BatchNormalization(tf.Module):
                 momentum: float - Momentum for adjusting running mean and variance.
                 epsilon: float - Small number for division stability.
                 name: Name of the layer.
+            returns:
+                None
         """
 
         super().__init__(name)
