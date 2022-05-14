@@ -204,7 +204,7 @@ class Flatten(tf.Module):
         """
 
         x_out = tf.reshape(
-            x_in, (x_in.shape[0], -1), name = 'flatten')
+            x_in, (tf.shape(x_in)[0], -1), name = 'flatten')
 
         return x_out
 
