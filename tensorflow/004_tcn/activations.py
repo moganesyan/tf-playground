@@ -15,7 +15,7 @@ class ReLU(tf.Module):
             returns:
                 None
         """
-        super().__init__(name)
+        super(ReLU, self).__init__(name)
 
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """

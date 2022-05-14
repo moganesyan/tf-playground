@@ -1,4 +1,5 @@
 from typing import Tuple, List, Optional, Union
+from scipy import rand
 
 import tensorflow as tf
 
@@ -191,7 +192,7 @@ class Flatten(tf.Module):
                 None
         """
 
-        super().__init__(name)
+        super(Flatten, self).__init__(name)
 
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
@@ -225,7 +226,7 @@ class GlobalMaxPooling1D(tf.Module):
                 None
         """
 
-        super().__init__(name)
+        super(GlobalMaxPooling1D, self).__init__(name)
 
         assert data_format in ('channels_first', 'channels_last'), "Invalid data format."
         self._data_format = 'NWC' if data_format == 'channels_last' else 'NCW'
@@ -273,7 +274,7 @@ class BatchNormalization(tf.Module):
                 None
         """
 
-        super().__init__(name)
+        super(BatchNormalization, self).__init__(name)
 
         self._axis = axis
         self._momentum = momentum
@@ -290,6 +291,50 @@ class BatchNormalization(tf.Module):
 
         # is built flag for dynamic input size inference
         self._is_built = False
+
+    def _train_path(self, x_in: tf.Tensor) -> tf.Tensor:
+        """
+            Train time behaviour of batch normalization.
+                - Calculate batch mean and variance.
+                - Scale input tensor.
+                - Update stored global mean and variance.
+
+            args:
+                x_in: tf.Tensor - Input tensor.
+            returns:
+                x_out: tf.Tensor - Output tensor.
+        """
+
+        # calculate batchwise mean and variance
+        mean, var = tf.nn.moments(
+            x_in, self._axes
+        )
+
+        # scale batch
+        x_out = (x_in - mean) / tf.math.sqrt((var + self._epsilon))
+        x_out = (self._gamma * x_out) + self._beta
+
+        # update moving mean and variance
+        self._mean_ma.assign((self._mean_ma * self._momentum) + (mean * (1 - self._momentum)))
+        self._var_ma.assign((self._var_ma * self._momentum) + (var * (1 - self._momentum)))
+
+        return x_out
+
+    def _inference_path(self, x_in: tf.Tensor) -> tf.Tensor:
+        """
+            Inference time behaviour of batch normalization.
+                - Scale input tensor using stored global mean and variance.
+
+            args:
+                x_in: tf.Tensor - Input tensor.
+            returns:
+                x_out: tf.Tensor - Output tensor.
+        """
+
+        x_out = (x_in - self._mean_ma) / tf.math.sqrt((self._var_ma + self._epsilon))
+        x_out = (self._gamma * x_out) + self._beta
+
+        return x_out
 
     def __call__(self,
                  x_in: tf.Tensor,
@@ -345,23 +390,57 @@ class BatchNormalization(tf.Module):
 
             self._is_built = True
 
-        if training:
-            # calculate batchwise mean and variance
-            mean, var = tf.nn.moments(
-                x_in, self._axes
-            )
+        x_out = tf.cond(
+            training,
+            lambda: self._train_path(x_in),
+            lambda: self._inference_path(x_in),
+            name = 'bnorm'
+        )
 
-            # scale batch
-            x_out = (x_in - mean) / tf.math.sqrt((var + self._epsilon))
-            x_out = (self._gamma * x_out) + self._beta
+        return x_out
 
-            # update moving mean and variance
-            self._mean_ma.assign((self._mean_ma * self._momentum) + (mean * (1 - self._momentum)))
-            self._var_ma.assign((self._var_ma * self._momentum) + (var * (1 - self._momentum)))
 
-            return x_out
-        else:
-            x_out = (x_in - self._mean_ma) / tf.math.sqrt((self._var_ma + self._epsilon))
-            x_out = (self._gamma * x_out) + self._beta
+class Dropout(tf.Module):
+    """
+        Dropout layer.
+    """
 
-            return x_out
+    def __init__(self,
+                 dropout_rate: float,
+                 random_state: int = None,
+                 name: str = None) -> None:
+        """
+            Randomly dropout layers at train time.
+
+            args:
+                dropout_rate: float - Ratio of neurons to drop out.
+                random_state: int - Operational random seed.
+                name: str - Name of the layer.
+            returns:
+                None
+        """
+        super(Dropout, self).__init__(name)
+
+        self._dropout_rate = dropout_rate
+        self._random_state = random_state
+
+    def __call__(self, x_in: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+            args:
+                x_in: tf.Tensor - Input tensor.
+                training: bool - Flag to toggle train time and inference time behaviour.
+            returns:
+                x_out: tf.Tensor - Output tensor.
+        """
+
+        x_out = tf.cond(
+            training,
+            lambda: tf.nn.dropout(
+                x_in, self._dropout_rate,
+                seed = self._random_state,
+            ),
+            lambda: tf.identity(x_in),
+            name = 'dropout'
+        )
+
+        return x_out
