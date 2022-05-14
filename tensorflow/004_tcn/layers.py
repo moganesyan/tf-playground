@@ -124,9 +124,9 @@ class Conv1D(tf.Module):
                 x_out: tf.Tensor - Output tensor of dimension (None, output_size, out_channels).
         """
 
-        assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
-
         if not self._is_built:
+            assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
+
             filters_in = x_in.shape[2] if self._data_format == "NWC" else x_in.shape[1]
             kernel_shape = (self._kernel_size, filters_in, self._n_filters)
 
