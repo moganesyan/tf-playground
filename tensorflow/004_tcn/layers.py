@@ -1,4 +1,5 @@
 from typing import Tuple, List, Optional, Union
+from pytz import NonExistentTimeError
 from scipy import rand
 
 import tensorflow as tf
@@ -231,6 +232,11 @@ class GlobalMaxPooling1D(tf.Module):
         assert data_format in ('channels_first', 'channels_last'), "Invalid data format."
         self._data_format = 'NWC' if data_format == 'channels_last' else 'NCW'
 
+        self._kernel_size = None
+        self._n_channels = None
+
+        self._is_built = False
+
     def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
         """
             args:
@@ -239,13 +245,18 @@ class GlobalMaxPooling1D(tf.Module):
                 x_out: tf.Tensor - Output tensor of dimension (None, 1, in_channels).
         """
 
-        assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
+        if not self._is_built:
+            assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
 
-        kernel_size = x_in.shape[1] if self._data_format == "NWC" else x_in.shape[2]
-        x_out = tf.nn.max_pool1d(
-            x_in, kernel_size, 1, 'VALID', self._data_format
+            self._kernel_size = x_in.shape[1] if self._data_format == "NWC" else x_in.shape[2]
+            self._n_channels = x_in.shape[2] if self._data_format == "NWC" else x_in.shape[1]
+
+            self._is_built = True
+
+        x = tf.nn.max_pool1d(
+            x_in, self._kernel_size, 1, 'VALID', self._data_format
         )
-        x_out = tf.squeeze(x_out)
+        x_out = tf.reshape(x, (tf.shape(x)[0], self._n_channels))
 
         return x_out
 
@@ -357,14 +368,14 @@ class BatchNormalization(tf.Module):
 
             # initialize variables
             self._beta = tf.Variable(
-                initial_value = tf.constant(0, tf.float32, x_in.shape),
+                initial_value = tf.constant(0, tf.float32, x_in.shape[1:]),
                 trainable = True,
                 name = "bnorm_beta",
                 dtype = tf.float32
             )
 
             self._gamma = tf.Variable(
-                initial_value = tf.constant(1, tf.float32, x_in.shape),
+                initial_value = tf.constant(1, tf.float32, x_in.shape[1:]),
                 trainable = True,
                 name = "bn_gamma",
                 dtype = tf.float32
@@ -390,12 +401,10 @@ class BatchNormalization(tf.Module):
 
             self._is_built = True
 
-        x_out = tf.cond(
-            training,
-            lambda: self._train_path(x_in),
-            lambda: self._inference_path(x_in),
-            name = 'bnorm'
-        )
+        if training:
+            x_out = self._train_path(x_in)
+        else:
+            x_out = self._inference_path(x_in)
 
         return x_out
 
@@ -424,7 +433,9 @@ class Dropout(tf.Module):
         self._dropout_rate = dropout_rate
         self._random_state = random_state
 
-    def __call__(self, x_in: tf.Tensor, training: bool = False) -> tf.Tensor:
+    def __call__(self,
+                 x_in: tf.Tensor,
+                 training: bool = False) -> tf.Tensor:
         """
             args:
                 x_in: tf.Tensor - Input tensor.
@@ -433,14 +444,12 @@ class Dropout(tf.Module):
                 x_out: tf.Tensor - Output tensor.
         """
 
-        x_out = tf.cond(
-            training,
-            lambda: tf.nn.dropout(
+        if training:
+            x_out = tf.nn.dropout(
                 x_in, self._dropout_rate,
                 seed = self._random_state,
-            ),
-            lambda: tf.identity(x_in),
-            name = 'dropout'
-        )
+            )
+        else:
+            x_out = tf.identity(x_in)
 
         return x_out

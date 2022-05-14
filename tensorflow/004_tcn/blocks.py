@@ -66,7 +66,9 @@ class ResidualTCNBlock(tf.Module):
         # is built flag for dynamic input size inference
         self._is_built = False
 
-    def __call__(self, x_in: tf.Tensor, training: bool = False) -> tf.Tensor:
+    def __call__(self,
+                 x_in: tf.Tensor,
+                 training: bool = False) -> tf.Tensor:
         """
             args:
                 x_in: tf.Tensor - Input tensor of dimension (None, input_size, in_filters)
@@ -93,12 +95,12 @@ class ResidualTCNBlock(tf.Module):
         x = self._cconv_1(x_in)
         x = self._bnorm_1(x, training = training)
         x = self._relu_1(x)
-        x = self._dropout_1(x)
+        x = self._dropout_1(x, training = training)
 
         x = self._cconv_2(x)
         x = self._bnorm_2(x, training = training)
         x = self._relu_2(x)
-        x = self._dropout_2(x)
+        x = self._dropout_2(x, training = training)
 
         x_out = tf.add(
             x, x_residual, name = 'residual_tcn_block'
