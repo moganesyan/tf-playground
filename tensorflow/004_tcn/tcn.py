@@ -13,12 +13,12 @@ class TCN(tf.Module):
 
     def __init__(self,
                  num_classes: int,
-                 architecture: List[Dict],
+                 architecture: Dict,
                  name: str = None) -> None:
         """
             args:
                 num_classes: int - Number of output classes.
-                architecture: List[Dict] - Architecture defined in block format.
+                architecture: Dict - Architecture defined in block format.
                     Example:
                         {'kernel': 6, 'num_layers': 9, 'num_channels': 10 , 'dropout': 0.05}
                 name: str - Name of the model.
@@ -48,37 +48,37 @@ class TCN(tf.Module):
         """
 
         # build convolutional blocks
-        for block_idx, block_params in enumerate(self._architecture):
-            for layer_idx in range(block_params["num_layers"]):
-                dilation_rate_current = 2 ** layer_idx
-                self._layers.append(
-                    ResidualTCNBlock(
-                        block_params["num_channels"],
-                        block_params["kernel"],
-                        dilation_rate_current,
-                        block_params["dropout"],
-                        name = f"residual_block_{layer_idx}"
-                    )
+        for layer_idx in range(self._architecture["num_layers"]):
+            # dilation_rate_current = 2 ** layer_idx
+            dilation_rate_current = 1
+            self._layers.append(
+                ResidualTCNBlock(
+                    self._architecture["num_channels"],
+                    self._architecture["kernel"],
+                    dilation_rate_current,
+                    self._architecture["dropout"],
+                    name = f"residual_block_{layer_idx}"
                 )
+            )
+
         # global max pooling
-        self._layers.append(
-            GlobalMaxPooling1D(name = "global_maxpool")
-        )
+        self._maxpool = GlobalMaxPooling1D(name = "global_maxpool")
+
         # final dense layer
-        self._layers.append(
-            Dense(
+        self._fc_final = Dense(
                 self._num_classes,
                 name = "final_dense"
             )
-        )
 
-    @tf.function(input_signature = [tf.TensorSpec(shape = (None, 20, 1), dtype = tf.float32)])
-    def __call__(self, x_in: tf.Tensor) -> tf.Tensor:
+    def __call__(self,
+                 x_in: tf.Tensor,
+                 training: bool = False) -> tf.Tensor:
         """
             Build graph on first call.
 
             args:
                 x_in: tf.Tensor - Input tensor.
+                training: bool - Flag for train and inference time behaviour.
             returns:
                 x_out: tf.Tesnor - Output tensor.
         """
@@ -89,9 +89,12 @@ class TCN(tf.Module):
 
         for layer_idx, layer in enumerate(self._layers):
             if layer_idx == 0:
-                x = layer(x_in)
+                x = layer(x_in, training = training)
             else:
-                x = layer(x)
+                x = layer(x, training = training)
+
+        x = self._maxpool(x)
+        x = self._fc_final(x)
         x_out = tf.nn.softmax(x, name = 'final_softmax')
 
         return x_out
