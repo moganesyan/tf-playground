@@ -20,7 +20,7 @@ class TCN(tf.Module):
                 num_classes: int - Number of output classes.
                 architecture: Dict - Architecture defined in block format.
                     Example:
-                        {'kernel': 6, 'num_layers': 9, 'num_channels': 10 , 'dropout': 0.05}
+                        {'kernel': 6, 'num_blocks': 9, 'num_channels': 10 , 'dropout': 0.05}
                 name: str - Name of the model.
             returns:
                 None
@@ -31,7 +31,7 @@ class TCN(tf.Module):
         self._architecture = architecture
 
         # placeholder for graph
-        self._layers = []
+        self._blocks = []
 
         # flag to build graph on first call
         self._is_built = False
@@ -39,7 +39,7 @@ class TCN(tf.Module):
     def _build_architecture(self) -> None:
         """
             Build graph from the architecture definition.
-            Store created layers in a list.
+            Store created blocks in a list.
 
             args:
                 None
@@ -48,16 +48,15 @@ class TCN(tf.Module):
         """
 
         # build convolutional blocks
-        for layer_idx in range(self._architecture["num_layers"]):
-            # dilation_rate_current = 2 ** layer_idx
-            dilation_rate_current = 1
-            self._layers.append(
+        for block_idx in range(self._architecture["num_blocks"]):
+            dilation_rate_current = 2 ** block_idx
+            self._blocks.append(
                 ResidualTCNBlock(
                     self._architecture["num_channels"],
                     self._architecture["kernel"],
                     dilation_rate_current,
                     self._architecture["dropout"],
-                    name = f"residual_block_{layer_idx}"
+                    name = f"res_tcn_block_{block_idx}"
                 )
             )
 
@@ -87,11 +86,11 @@ class TCN(tf.Module):
             self._build_architecture()
             self._is_built = True
 
-        for layer_idx, layer in enumerate(self._layers):
-            if layer_idx == 0:
-                x = layer(x_in, training = training)
+        for block_idx, block in enumerate(self._blocks):
+            if block_idx == 0:
+                x = block(x_in, training = training)
             else:
-                x = layer(x, training = training)
+                x = block(x, training = training)
 
         x = self._maxpool(x)
         x = self._fc_final(x)

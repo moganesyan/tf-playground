@@ -1,5 +1,6 @@
 import enum
 import numpy as np
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 tf.random.set_seed(42)
@@ -15,10 +16,10 @@ test_data = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
 # Define experiment parameters
 NUM_CLASSES = len(np.unique(y_test))
-EPOCHS = 5
-BATCH_SIZE = 64
-LEARNING_RATE = 0.001
-ARCHITECTURE = {'kernel': 7, 'num_layers': 8, 'num_channels': 25 , 'dropout': 0.05}
+EPOCHS = 2
+BATCH_SIZE = 32
+LEARNING_RATE = 0.0003
+ARCHITECTURE = {'kernel': 7, 'num_blocks': 8, 'num_channels': 25 , 'dropout': 0.05}
 
 # create sequential p-mnist dataset
 def transform_data(image, label):
@@ -102,7 +103,7 @@ def train():
 
     losses_train = []
     for epoch in range(EPOCHS):
-        print(f"Working on epoch: {epoch}.")
+        print(f"Working on epoch: {epoch}...")
         for train_idx, (x_batch_train, y_batch_train) in enumerate(train_data):
             loss_value_train = train_step(x_batch_train, y_batch_train)
             losses_train.append(loss_value_train.numpy())
@@ -119,17 +120,11 @@ def train():
 
         print(f"Test set loss: {np.mean(losses_test):.2f}.")
 
-
     return losses_train
 
 
 # train and plot loss
 train_losses = train()
 
-
-
-
-
-
-
-
+plt.plot(train_losses)
+plt.show()
