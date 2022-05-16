@@ -2,6 +2,7 @@ from typing import Tuple, List, Optional, Union
 from pytz import NonExistentTimeError
 from scipy import rand
 
+import numpy as np
 import tensorflow as tf
 
 
@@ -113,6 +114,9 @@ class Conv1D(tf.Module):
         self.W = None
         self.b = None
 
+        # conv kernel mask for simulating dilated convolutions
+        # self._conv_kernel_mask = None
+
         # is built flag for dynamic input size inference
         self._is_built = False
 
@@ -128,6 +132,22 @@ class Conv1D(tf.Module):
             assert len(x_in.shape) == 3, f"Input tensor rank must be 3, given {len(x_in.shape)}"
 
             filters_in = x_in.shape[2] if self._data_format == "NWC" else x_in.shape[1]
+
+            # custom dilation to avoid size to batch and batch to size conversions
+
+            # if self._dilation_rate > 1:
+            #     kernel_size_new = ((self._kernel_size - 1) * self._dilation_rate) + 1
+            #     kernel_shape = (kernel_size_new, filters_in, self._n_filters)
+
+            #     temp_mask = np.zeros((kernel_shape))
+            #     for kernel_idx in range(kernel_size_new):
+            #         if kernel_idx % self._dilation_rate == 0:
+            #             temp_mask[kernel_idx, :, :] = 1.0
+
+            #     self._conv_kernel_mask = np.copy(temp_mask)
+            # else:
+            #     kernel_shape = (self._kernel_size, filters_in, self._n_filters)
+
             kernel_shape = (self._kernel_size, filters_in, self._n_filters)
 
             self.W = tf.Variable(
@@ -148,9 +168,18 @@ class Conv1D(tf.Module):
 
             self._is_built = True
 
+        # mask weights to simulate dilated convs
+
+        # if self._dilation_rate > 1:
+        #     conv_kernel = self.W * tf.constant(self._conv_kernel_mask, tf.float32)
+        # else:
+        #     conv_kernel = self.W
+
+        conv_kernel = self.W
+
         if self._padding != 'causal':
             x_out = tf.nn.conv1d(
-                    x_in, self.W,
+                    x_in, conv_kernel,
                     self._stride,
                     self._padding.upper(),
                     self._data_format,
@@ -165,7 +194,7 @@ class Conv1D(tf.Module):
                 'CONSTANT', 0
             )
             x_out = tf.nn.conv1d(
-                    x_out, self.W,
+                    x_out, conv_kernel,
                     self._stride,
                     'VALID',
                     self._data_format,
