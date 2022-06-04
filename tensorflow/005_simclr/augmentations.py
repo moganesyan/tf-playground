@@ -49,11 +49,9 @@ def apply_gaussian_noise(x_in: tf.Tensor) -> tf.Tensor:
         kernel_size = tf.cast(kernel_size, tf.int32)
 
         kernel = get_gaussian_kernel(kernel_size, blur_strength)
-        kernel = tf.expand_dims(kernel,-1)
-        kernel = tf.expand_dims(kernel,-1)
+        kernel = kernel[..., tf.newaxis, tf.newaxis]
 
-        x_in_reshaped = tf.expand_dims(x_in,0)
-        x_in_reshaped = tf.expand_dims(x_in_reshaped,-1)
+        x_in_reshaped = x_in[tf.newaxis, ..., tf.newaxis]
 
         x_out = tf.nn.conv2d(x_in_reshaped, kernel, [1,1,1,1], 'SAME')
         x_out = tf.squeeze(x_out)
