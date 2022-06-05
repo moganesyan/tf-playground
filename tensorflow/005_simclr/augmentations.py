@@ -45,20 +45,20 @@ def apply_gaussian_noise(x_in: tf.Tensor) -> tf.Tensor:
 
     if roll_augment_flag >= 0.50:
         blur_strength = tf.random.uniform((),0.1,2.0)
-        kernel_size = tf.cast(x_in.shape[0], tf.float32) * tf.constant(0.10)
+        kernel_size = tf.cast(x_in.shape[1], tf.float32) * tf.constant(0.10)
         kernel_size = tf.cast(kernel_size, tf.int32)
 
         kernel = get_gaussian_kernel(kernel_size, blur_strength)
         kernel = kernel[..., tf.newaxis]
-        if len(x_in.shape) == 3:
-            kernel = tf.tile(kernel, tf.constant([1, 1, x_in.shape[-1]]))
+        if len(x_in.shape) == 4:
+            kernel = tf.tile(
+                kernel, tf.constant([1, 1, x_in.shape[-1]]))
         kernel = kernel[..., tf.newaxis]
 
-        x_in_reshaped = x_in[tf.newaxis, ...]
-        if len(x_in_reshaped.shape) < 4:
+        x_in_reshaped = x_in
+        if len(x_in.shape) < 4:
             x_in_reshaped = x_in_reshaped[..., tf.newaxis]
         x_out = tf.nn.depthwise_conv2d(x_in_reshaped, kernel, [1,1,1,1], 'SAME')
-        x_out = tf.squeeze(x_out)   
     else:
         x_out = x_in
     return x_out
@@ -92,8 +92,8 @@ def random_crop_and_resize(x_in: tf.Tensor,
     aspect_ratio_min = aspect_range[0]
     aspect_ratio_max = aspect_range[1]
 
-    w_original = tf.cast(tf.shape(x_in)[1], tf.float32)
-    h_original = tf.cast(tf.shape(x_in)[0], tf.float32)
+    w_original = tf.cast(tf.shape(x_in)[2], tf.float32)
+    h_original = tf.cast(tf.shape(x_in)[1], tf.float32)
 
     for _ in tf.range(num_tries):
         # randomly get crop area and aspect ratio
@@ -111,17 +111,16 @@ def random_crop_and_resize(x_in: tf.Tensor,
 
         if w_new <= w_original and h_new <= h_original:
             # randomly crop based on dimensions
-            if len(x_in.shape) < 3: 
-                crop_dims = (h_new, w_new)
+            if len(x_in.shape) < 4:
+                crop_dims = (tf.shape(x_in)[0], h_new, w_new)
             else:
-                crop_dims = (h_new, w_new, x_in.shape[2])
+                crop_dims = (tf.shape(x_in)[0], h_new, w_new, x_in.shape[3])
 
             crop = tf.image.random_crop(x_in, crop_dims)
-            crop = crop[tf.newaxis, ...]
-            if len(x_in.shape) < 3:
+            if len(x_in.shape) < 4:
                 crop = crop[..., tf.newaxis]
 
-            resize_dims = [x_in.shape[0], x_in.shape[1]]
+            resize_dims = [x_in.shape[1], x_in.shape[2]]
             crop_resized = tf.squeeze(tf.image.resize(crop, resize_dims))
             return crop_resized
     return x_in
@@ -165,7 +164,7 @@ def colour_drop(x_in: tf.Tensor) -> tf.Tensor:
     """
 
     x = tf.image.rgb_to_grayscale(x_in)
-    x_out = tf.tile(x, [1, 1, 1, 3])
+    x_out = tf.tile(x, [tf.shape(x_in)[0], 1, 1, tf.shape(x_in)[3]])
 
     return x_out
 
@@ -188,13 +187,12 @@ def colour_distortion(x_in: tf.Tensor) -> tf.Tensor:
     apply_drop = tf.random.uniform(
         (), minval = 0, maxval = 1.0, dtype = tf.float32)
 
-    x_out = x_in[tf.newaxis, ...]
-    if len(x_in.shape) < 3:
-        x_out = x_out[..., tf.newaxis]
+    if len(x_in.shape) < 4:
+        x_out = x_in[..., tf.newaxis]
 
     if apply_jitter <= 0.80:
         x_out = colour_jitter(x_out)
-    if len(x_in.shape) == 3:
+    if len(x_in.shape) == 4:
         if apply_drop <= 0.20:
             x_out = colour_drop(x_out)
 
