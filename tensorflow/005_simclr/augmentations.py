@@ -46,20 +46,16 @@ def apply_gaussian_noise(x_in: tf.Tensor) -> tf.Tensor:
 
     if roll_augment_flag >= 0.50:
         blur_strength = tf.random.uniform((),0.1,2.0)
-        kernel_size = tf.cast(x_in.shape[0], tf.float32) * tf.constant(0.10)
+        kernel_size = tf.cast(x_in.shape[1], tf.float32) * tf.constant(0.10)
         kernel_size = tf.cast(kernel_size, tf.int32)
 
         kernel = get_gaussian_kernel(kernel_size, blur_strength)
         kernel = kernel[..., tf.newaxis]
-        if len(x_in.shape) == 3:
-            kernel = tf.tile(kernel, tf.constant([1, 1, x_in.shape[-1]]))
+        kernel = tf.tile(
+            kernel, tf.constant([1, 1, x_in.shape[-1]]))
         kernel = kernel[..., tf.newaxis]
 
-        x_in_reshaped = x_in[tf.newaxis, ...]
-        if len(x_in_reshaped.shape) < 4:
-            x_in_reshaped = x_in_reshaped[..., tf.newaxis]
-        x_out = tf.nn.depthwise_conv2d(x_in_reshaped, kernel, [1,1,1,1], 'SAME')
-        x_out = tf.squeeze(x_out)   
+        x_out = tf.nn.depthwise_conv2d(x_in, kernel, [1,1,1,1], 'SAME')
     else:
         x_out = x_in
     return x_out
