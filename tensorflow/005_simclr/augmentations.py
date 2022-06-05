@@ -87,17 +87,17 @@ def random_crop_and_resize(x_in: tf.Tensor,
             x_out: tf.Tensor - Cropped image tensor.
     """
 
-    input_dim = x_in.shape[1]
-    resize_dims = [input_dim, input_dim]
+    h_original = x_in.shape[1]
+    w_original = x_in.shape[2]
+    ch_original = x_in.shape[3]
+
+    resize_dims = [h_original, w_original]
 
     crop_size_min = crop_size[0]
     crop_size_max = crop_size[1]
 
     aspect_ratio_min = aspect_range[0]
     aspect_ratio_max = aspect_range[1]
-
-    w_original = tf.cast(tf.shape(x_in)[2], tf.float32)
-    h_original = tf.cast(tf.shape(x_in)[1], tf.float32)
 
     # initialise tf loop variables
     tf_counter = tf.constant(0)
@@ -108,7 +108,7 @@ def random_crop_and_resize(x_in: tf.Tensor,
     loop_vars = [tf_counter, input_pair(x_out, stop_flag)]
     shape_invariants = [
         tf_counter.get_shape(),
-        input_pair(tf.TensorShape([None, input_dim, input_dim, None]),
+        input_pair(tf.TensorShape([None, h_original, w_original, ch_original]),
         stop_flag.get_shape())
     ]
 
@@ -129,9 +129,12 @@ def random_crop_and_resize(x_in: tf.Tensor,
         w_new = tf.math.floor(tf.math.sqrt(aspect_ratio * num_pixels_new))
         h_new = tf.math.floor(num_pixels_new / w_new)
 
+        h_new = tf.cast(h_new, tf.int32)
+        w_new = tf.cast(w_new, tf.int32)
+
         if w_new <= w_original and h_new <= h_original:
             crop_dims = tf.stack(
-                (tf.shape(x_in)[0], tf.cast(h_new, tf.int32), tf.cast(w_new, tf.int32), tf.shape(x_in)[3]),
+                (tf.shape(x_in)[0], h_new, w_new, ch_original),
                 axis = 0
             )
             crop = tf.image.random_crop(x_in, crop_dims)
