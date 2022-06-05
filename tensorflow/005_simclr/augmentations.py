@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Tuple
 
 import tensorflow as tf
@@ -86,16 +87,35 @@ def random_crop_and_resize(x_in: tf.Tensor,
             x_out: tf.Tensor - Cropped image tensor.
     """
 
+    input_dim = x_in.shape[1]
+    resize_dims = [input_dim, input_dim]
+
     crop_size_min = crop_size[0]
     crop_size_max = crop_size[1]
 
     aspect_ratio_min = aspect_range[0]
     aspect_ratio_max = aspect_range[1]
 
-    w_original = tf.cast(tf.shape(x_in)[1], tf.float32)
-    h_original = tf.cast(tf.shape(x_in)[0], tf.float32)
+    w_original = tf.cast(tf.shape(x_in)[2], tf.float32)
+    h_original = tf.cast(tf.shape(x_in)[1], tf.float32)
+    
+    # initialise tf loop variables
+    tf_counter = tf.constant(0)
+    stop_flag = tf.constant(0)
+    x_out = x_in
+    
+    input_pair = namedtuple('input_pair', 'x_out, stop_flag')
+    loop_vars = [tf_counter, input_pair(x_out, stop_flag)]
+    shape_invariants = [
+        tf_counter.get_shape(),
+        input_pair(tf.TensorShape([None, input_dim, input_dim, None]),
+        stop_flag.get_shape())
+    ]
+    
+    # define operation block
+    def block(x_in, stop_flag):
+        crop_resized = x_in
 
-    for _ in tf.range(num_tries):
         # randomly get crop area and aspect ratio
         crop_size = tf.random.uniform(
             (), minval = crop_size_min, maxval = crop_size_max)
@@ -108,23 +128,22 @@ def random_crop_and_resize(x_in: tf.Tensor,
 
         w_new = tf.math.floor(tf.math.sqrt(aspect_ratio * num_pixels_new))
         h_new = tf.math.floor(num_pixels_new / w_new)
-
+                
         if w_new <= w_original and h_new <= h_original:
-            # randomly crop based on dimensions
-            if len(x_in.shape) < 3: 
-                crop_dims = (h_new, w_new)
-            else:
-                crop_dims = (h_new, w_new, x_in.shape[2])
-
+            crop_dims = tf.stack((tf.shape(x_in)[0], tf.cast(h_new, tf.int32), tf.cast(w_new, tf.int32), tf.shape(x_in)[3]), axis = 0)
             crop = tf.image.random_crop(x_in, crop_dims)
-            crop = crop[tf.newaxis, ...]
-            if len(x_in.shape) < 3:
-                crop = crop[..., tf.newaxis]
+            crop_resized = tf.image.resize(crop, resize_dims)
+            stop_flag = tf.constant(1)
+            
+        return input_pair(crop_resized, stop_flag)
 
-            resize_dims = [x_in.shape[0], x_in.shape[1]]
-            crop_resized = tf.squeeze(tf.image.resize(crop, resize_dims))
-            return crop_resized
-    return x_in
+    output_payload = tf.while_loop(
+        lambda tf_counter, p: tf_counter < num_tries and p.stop_flag == 0,
+        lambda tf_counter, p: [tf_counter + 1, block(p.x_out, p.stop_flag)],
+        loop_vars = loop_vars,
+        shape_invariants = shape_invariants
+    )
+    return output_payload[1].x_out
 
 
 def colour_jitter(x_in: tf.Tensor) -> tf.Tensor:
