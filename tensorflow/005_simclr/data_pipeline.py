@@ -35,15 +35,23 @@ def get_transform_func(num_classes) -> callable:
 
         # preprocess image and label
         image = tf.cast(image, tf.float32) / 255.
+        image = image[tf.newaxis, ...]
         label = tf.one_hot(label, num_classes)
 
-        # apply augmentations
-        image_augmented = image[tf.newaxis, ...]
-        image_augmented = apply_gaussian_noise(image_augmented)
-        image_augmented = random_crop_and_resize(image_augmented)
-        image_augmented = colour_distortion(image_augmented)
-        image_augmented = image_augmented[0]
+        # apply augmentations (1)
+        image_augmented_1 = image
+        image_augmented_1 = random_crop_and_resize(image_augmented_1)
+        image_augmented_1 = colour_distortion(image_augmented_1, strength = 0.50)
+        image_augmented_1 = apply_gaussian_noise(image_augmented_1)
+        image_augmented_1 = image_augmented_1[0]
 
-        return image, image_augmented, label
-    
+        # apply augmentations (2)
+        image_augmented_2 = image
+        image_augmented_2 = random_crop_and_resize(image_augmented_2)
+        image_augmented_2 = colour_distortion(image_augmented_2, strength = 0.50)
+        image_augmented_2 = apply_gaussian_noise(image_augmented_2)
+        image_augmented_2 = image_augmented_2[0]
+
+        return image_augmented_1, image_augmented_2, label
+
     return transform_data
