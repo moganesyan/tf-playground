@@ -98,12 +98,12 @@ def random_crop_and_resize(x_in: tf.Tensor,
 
     w_original = tf.cast(tf.shape(x_in)[2], tf.float32)
     h_original = tf.cast(tf.shape(x_in)[1], tf.float32)
-    
+
     # initialise tf loop variables
     tf_counter = tf.constant(0)
     stop_flag = tf.constant(0)
     x_out = x_in
-    
+
     input_pair = namedtuple('input_pair', 'x_out, stop_flag')
     loop_vars = [tf_counter, input_pair(x_out, stop_flag)]
     shape_invariants = [
@@ -111,7 +111,7 @@ def random_crop_and_resize(x_in: tf.Tensor,
         input_pair(tf.TensorShape([None, input_dim, input_dim, None]),
         stop_flag.get_shape())
     ]
-    
+
     # define operation block
     def block(x_in, stop_flag):
         crop_resized = x_in
@@ -128,13 +128,16 @@ def random_crop_and_resize(x_in: tf.Tensor,
 
         w_new = tf.math.floor(tf.math.sqrt(aspect_ratio * num_pixels_new))
         h_new = tf.math.floor(num_pixels_new / w_new)
-                
+
         if w_new <= w_original and h_new <= h_original:
-            crop_dims = tf.stack((tf.shape(x_in)[0], tf.cast(h_new, tf.int32), tf.cast(w_new, tf.int32), tf.shape(x_in)[3]), axis = 0)
+            crop_dims = tf.stack(
+                (tf.shape(x_in)[0], tf.cast(h_new, tf.int32), tf.cast(w_new, tf.int32), tf.shape(x_in)[3]),
+                axis = 0
+            )
             crop = tf.image.random_crop(x_in, crop_dims)
             crop_resized = tf.image.resize(crop, resize_dims)
             stop_flag = tf.constant(1)
-            
+
         return input_pair(crop_resized, stop_flag)
 
     output_payload = tf.while_loop(
