@@ -111,9 +111,17 @@ def random_crop_and_resize(x_in: tf.Tensor,
 
         if w_new <= w_original and h_new <= h_original:
             # randomly crop based on dimensions
-            crop = tf.image.random_crop(x_in, (h_new, w_new))
-            crop = crop[tf.newaxis, ..., tf.newaxis]
-            crop_resized = tf.squeeze(tf.image.resize(crop, [x_in.shape[0], x_in.shape[1]]))
+            if len(x_in.shape) < 3: 
+                crop_dims = (h_new, w_new)
+            else:
+                crop_dims = (h_new, w_new, x_in.shape[2])
+
+            crop = tf.image.random_crop(x_in, crop_dims)
+            crop = crop[tf.newaxis, ...]
+            if len(x_in.shape) < 3:
+                crop = crop[..., tf.newaxis]
+
+            resize_dims = [x_in.shape[0], x_in.shape[1]]
+            crop_resized = tf.squeeze(tf.image.resize(crop, resize_dims))
             return crop_resized
     return x_in
-
