@@ -27,7 +27,7 @@ def pairwise_similarity(u: tf.Tensor, v: tf.Tensor) -> tf.Tensor:
 
 def ntxent_loss(batch_u: tf.Tensor,
                 batch_v: tf.Tensor,
-                temp: float = 0.001) -> tf.Tensor:
+                temp: float = 1.0) -> tf.Tensor:
     """
         Normalised temperature-scaled cross entropy loss.
 
