@@ -148,7 +148,7 @@ def random_crop_and_resize(x_in: tf.Tensor,
     return output_payload[1].x_out
 
 
-def colour_jitter(x_in: tf.Tensor) -> tf.Tensor:
+def colour_jitter(x_in: tf.Tensor, strength: float) -> tf.Tensor:
     """
         Apply colour jitter.
 
@@ -159,15 +159,16 @@ def colour_jitter(x_in: tf.Tensor) -> tf.Tensor:
 
         args:
             x_in: tf.Tensor - Input image tensor.
+            strength: float - Strength of colour distortion.
         returns:
             x_out: tf.Tensor - Augmented image tensor.
     """
 
-    x = tf.image.random_brightness(x_in, max_delta=0.8)
-    x = tf.image.random_contrast(x, lower=1-0.8, upper=1+0.8)
+    x = tf.image.random_brightness(x_in, max_delta=0.8 * strength)
+    x = tf.image.random_contrast(x, lower=1-0.8 * strength, upper=1+0.8 * strength)
     if x_in.shape[-1] == 3:
-        x = tf.image.random_saturation(x, lower=1-0.8, upper=1+0.8)
-        x = tf.image.random_hue(x, max_delta=0.2)
+        x = tf.image.random_saturation(x, lower=1-0.8 * strength, upper=1+0.8 * strength)
+        x = tf.image.random_hue(x, max_delta=0.2 * strength)
     x_out = tf.clip_by_value(x, 0, 1)
 
     return x_out
@@ -192,7 +193,7 @@ def colour_drop(x_in: tf.Tensor) -> tf.Tensor:
     return x_out
 
 
-def colour_distortion(x_in: tf.Tensor) -> tf.Tensor:
+def colour_distortion(x_in: tf.Tensor, strength: float = 1.0) -> tf.Tensor:
     """
         Apply colour distortion augmentations.
 
@@ -201,6 +202,7 @@ def colour_distortion(x_in: tf.Tensor) -> tf.Tensor:
 
         args:
             x_in: tf.Tensor - Input image tensor.
+            strength: float - Strength of colour distortion.
         returns:
             x_out: tf.Tensor - Augmented image tensor.
     """
@@ -212,7 +214,7 @@ def colour_distortion(x_in: tf.Tensor) -> tf.Tensor:
 
     x_out = x_in
     if apply_jitter <= 0.80:
-        x_out = colour_jitter(x_out)
+        x_out = colour_jitter(x_out, strength)
     if x_in.shape[-1] == 3:
         if apply_drop <= 0.20:
             x_out = colour_drop(x_out)
