@@ -34,7 +34,7 @@ def ntxent_loss(batch_u: tf.Tensor,
             loss: tf.Tensor - Loss scalar.
     """
 
-    n_minibatch = batch_u.shape[0]
+    n_minibatch = tf.shape(batch_u)[0]
     loss = tf.constant(0.0)
 
     # get similarity matrix
@@ -48,4 +48,4 @@ def ntxent_loss(batch_u: tf.Tensor,
         loss_pairwise_2 = -1.0 * tf.math.log(sim_mat_t[k, k] / tf.reduce_sum(sim_mat_t[k,:]))
         loss = loss + loss_pairwise_1 + loss_pairwise_2
 
-    return loss / (2 * n_minibatch)
+    return loss / tf.cast((2 * n_minibatch), tf.float32)
