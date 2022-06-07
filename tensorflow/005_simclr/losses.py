@@ -39,11 +39,12 @@ def ntxent_loss(batch_u: tf.Tensor,
             loss: tf.Tensor - Loss scalar.
     """
 
-    n_batch = tf.shape(batch_u)[0]
-    loss = tf.constant(0)
+    n_batch = tf.cast(tf.shape(batch_u)[0], tf.float32)
+    loss = tf.constant(0.0)
 
     # first permutation
-    for k in tf.range(n_batch):
+    for k in tf.range(n_batch, dtype = tf.int32):
+        k = tf.squeeze(k)
         # get u and v bectors
         u_outer = batch_u[k]
         v_outer = batch_v[k]
@@ -52,24 +53,29 @@ def ntxent_loss(batch_u: tf.Tensor,
         pwise_sim = tf.math.exp(pairwise_similarity(u_outer, v_outer) / temp)
 
         # compute pairwise negative loss for negative examples from batch
-        pwise_sim_negative = tf.constant(0)
+        pwise_sim_negative = tf.constant(0.0)
 
         # 1) sample from batch u expluding u_outer
-        for k_inner in tf.range(1, n_batch):
+        for k_inner in tf.range(1, n_batch, dtype = tf.int32):
+            k_inner = tf.squeeze(k_inner)
+
             v_inner = batch_u[k_inner]
             pwise_sim_negative = pwise_sim_negative + tf.math.exp(pairwise_similarity(u_outer, v_inner) / temp)
 
         # 2) sample from batch v fully
-        for k_inner in tf.range(n_batch):
+        for k_inner in tf.range(n_batch, dtype = tf.int32):
+            k_inner = tf.squeeze(k_inner)
+
             v_inner = batch_v[k_inner]
             pwise_sim_negative = pwise_sim_negative + tf.math.exp(pairwise_similarity(u_outer, v_inner) / temp)
 
-        pairwise_loss = -1 * tf.math.log(pwise_sim / pwise_sim_negative)
+        pairwise_loss = -1.0 * tf.math.log(pwise_sim / pwise_sim_negative)
 
         loss = loss + pairwise_loss
 
     # 2nd permutation
-    for k in tf.range(n_batch):
+    for k in tf.range(n_batch, dtype = tf.int32):
+        k = tf.squeeze(k)
         # get u and v bectors
         u_outer = batch_v[k]
         v_outer = batch_u[k]
@@ -78,20 +84,24 @@ def ntxent_loss(batch_u: tf.Tensor,
         pwise_sim = tf.math.exp(pairwise_similarity(u_outer, v_outer) / temp)
 
         # compute pairwise negative loss for negative examples from batch
-        pwise_sim_negative = tf.constant(0)
+        pwise_sim_negative = tf.constant(0.0)
 
         # 1) sample from batch u expluding u_outer
-        for k_inner in tf.range(1, n_batch):
+        for k_inner in tf.range(1, n_batch, dtype = tf.int32):
+            k_inner = tf.squeeze(k_inner)
+
             v_inner = batch_v[k_inner]
             pwise_sim_negative = pwise_sim_negative + tf.math.exp(pairwise_similarity(u_outer, v_inner) / temp)
 
         # 2) sample from batch v fully
-        for k_inner in tf.range(n_batch):
+        for k_inner in tf.range(n_batch, dtype = tf.int32):
+            k_inner = tf.squeeze(k_inner)
+
             v_inner = batch_u[k_inner]
             pwise_sim_negative = pwise_sim_negative + tf.math.exp(pairwise_similarity(u_outer, v_inner) / temp)
 
-        pairwise_loss = -1 * tf.math.log(pwise_sim / pwise_sim_negative)
+        pairwise_loss = -1.0 * tf.math.log(pwise_sim / pwise_sim_negative)
 
         loss = loss + pairwise_loss
 
-    return loss / (2 * n_batch)
+    return loss / (2.0 * n_batch)
