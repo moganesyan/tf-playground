@@ -9,10 +9,10 @@ def get_gaussian_kernel(k: int, sigma: float) -> tf.Tensor:
         Get kxk 2D gaussian kernel.
 
         args:
-            k: int - Kernel size.
-            sigma: float - Blur strength.
+            k (int): Kernel size.
+            sigma (float): Blur strength.
         returns:
-            kernel_gauss: tf.Tensor - Gaussian kernel tensor.
+            kernel_gauss (tf.Tensor): Gaussian kernel tensor.
     """
 
     x = tf.range(-k // 2 + 1, k // 2 + 1, dtype = tf.float32)
@@ -28,7 +28,9 @@ def get_gaussian_kernel(k: int, sigma: float) -> tf.Tensor:
     return kernel_gauss
 
 
-def apply_gaussian_noise(x_in: tf.Tensor) -> tf.Tensor:
+def apply_gaussian_noise(x_in: tf.Tensor,
+                         blur_strength: Tuple[float, float] = (0.1, 2.0),
+                         **kwargs) -> tf.Tensor:
     """
         Apply 2D gaussian blur to input tensor.
 
@@ -37,15 +39,20 @@ def apply_gaussian_noise(x_in: tf.Tensor) -> tf.Tensor:
         - Kernel size is 10% of the input tensor height / width
 
         args:
-            x_in: tf.Tensor - Input tensor.
+            x_in (tf.Tensor): Input tensor.
+            blur_strength (Tuple[float, float]): Blur strength range to sample from.
         returns:
-            x_out: tf.Tensor - Augmented tensor.
+            x_out (tf.Tensor): Augmented tensor.
     """
+
+    blur_strength_min = blur_strength[0]
+    blur_strength_max = blur_strength[1]
 
     roll_augment_flag = tf.random.uniform((),0,1)
 
     if roll_augment_flag >= 0.50:
-        blur_strength = tf.random.uniform((),0.1,2.0)
+        blur_strength = tf.random.uniform(
+            (), blur_strength_min, blur_strength_max)
         kernel_size = tf.cast(x_in.shape[1], tf.float32) * tf.constant(0.10)
         kernel_size = tf.cast(kernel_size, tf.int32)
 
@@ -61,10 +68,11 @@ def apply_gaussian_noise(x_in: tf.Tensor) -> tf.Tensor:
     return x_out
 
 
-def random_crop_and_resize(x_in: tf.Tensor,
+def apply_crop_and_resize(x_in: tf.Tensor,
                            crop_size: Tuple[float, float] = (0.08, 1.0),
                            aspect_range: Tuple[float, float] = (0.75, 1.33),
-                           num_tries: int = 100) -> tf.Tensor:
+                           num_tries: int = 100,
+                           **kwargs) -> tf.Tensor:
     """
         Random crop and resize based on crop size and aspect ratio ranges.
             1) Sample crop size and aspect ratio.
@@ -75,12 +83,12 @@ def random_crop_and_resize(x_in: tf.Tensor,
             5) Return original image if valid crop can't be generated within num_tries.
 
         args:
-            x_in: tf.Tensor - Input image tensor.
-            crop_size: Tuple[float, float] - Crop size range (proprtion of input image).
-            aspect_range: Tuple[float, float] - Aspect ratio range.
-            num_tries: int - Number of tries to generate crop within given constraints.
+            x_in (tf.Tensor): Input image tensor.
+            crop_size (Tuple[float, float]): Crop size range (proprtion of input image).
+            aspect_range (Tuple[float, float]): Aspect ratio range.
+            num_tries (int): Number of tries to generate crop within given constraints.
         returns:
-            x_out: tf.Tensor - Cropped image tensor.
+            x_out (tf.Tensor):Cropped image tensor.
     """
 
     h_original = x_in.shape[1]
@@ -158,10 +166,10 @@ def colour_jitter(x_in: tf.Tensor, strength: float) -> tf.Tensor:
         4) Tweak hue.
 
         args:
-            x_in: tf.Tensor - Input image tensor.
-            strength: float - Strength of colour distortion.
+            x_in (tf.Tensor): Input image tensor.
+            strength (float): Strength of colour distortion.
         returns:
-            x_out: tf.Tensor - Augmented image tensor.
+            x_out (tf.Tensor): Augmented image tensor.
     """
 
     x = tf.image.random_brightness(x_in, max_delta=0.8 * strength)
@@ -182,9 +190,9 @@ def colour_drop(x_in: tf.Tensor) -> tf.Tensor:
         2) Reconvert to RGB.
 
         args:
-            x_in: tf.Tensor - Input image tensor.
+            x_in (tf.Tensor): Input image tensor.
         returns:
-            x_out: tf.Tensor - Augmented image tensor.
+            x_out (tf.tensor): Augmented image tensor.
     """
 
     x = tf.image.rgb_to_grayscale(x_in)
@@ -193,7 +201,9 @@ def colour_drop(x_in: tf.Tensor) -> tf.Tensor:
     return x_out
 
 
-def colour_distortion(x_in: tf.Tensor, strength: float = 1.0) -> tf.Tensor:
+def apply_colour_distortion(x_in: tf.Tensor,
+                            distort_strength: float = 1.0,
+                            **kwargs) -> tf.Tensor:
     """
         Apply colour distortion augmentations.
 
@@ -201,10 +211,10 @@ def colour_distortion(x_in: tf.Tensor, strength: float = 1.0) -> tf.Tensor:
         2) Apply random colour drop.
 
         args:
-            x_in: tf.Tensor - Input image tensor.
-            strength: float - Strength of colour distortion.
+            x_in (tf.Tensor): Input image tensor.
+            distort_strength (float): Strength of colour distortion.
         returns:
-            x_out: tf.Tensor - Augmented image tensor.
+            x_out (tf.Tensor): Augmented image tensor.
     """
 
     apply_jitter = tf.random.uniform(
@@ -214,7 +224,7 @@ def colour_distortion(x_in: tf.Tensor, strength: float = 1.0) -> tf.Tensor:
 
     x_out = x_in
     if apply_jitter <= 0.80:
-        x_out = colour_jitter(x_out, strength)
+        x_out = colour_jitter(x_out, distort_strength)
     if x_in.shape[-1] == 3:
         if apply_drop <= 0.20:
             x_out = colour_drop(x_out)
